@@ -2,7 +2,7 @@
 
 > **Hackathon Prototype** · **Paytm Build for India AI Hackathon** · *Merchant Growth AI Track*
 
-LocalPulse AI is a production-grade, hyper-local demand forecasting and collaborative growth engine architected specifically for Indian MSMEs — kirana stores, neighbourhood cafes, organic produce marts, and retail shops. Built on modern distributed system principles, it pairs deterministic weekday-aware demand forecasting, real-time stockout prevention, audited inventory replenishment, and margin-protected multi-merchant co-promotions with an **AI Business Copilot** (featuring multilingual voice input via Sarvam AI & reasoning via Google Gemini) and a **Spatial Proximity Radar & Community Demand Calendar**.
+LocalPulse AI is a production-grade, hyper-local demand forecasting and collaborative growth engine architected specifically for Indian MSMEs — kirana stores, neighbourhood cafes, organic produce marts, and retail shops. Built on modern distributed system principles, it pairs deterministic weekday-aware demand forecasting, real-time stockout prevention, audited inventory replenishment, and margin-protected multi-merchant co-promotions with an **AI Business Copilot** (featuring multilingual voice input via Sarvam AI & reasoning via Google Gemini 3.8 Flash), a **Live All-India Occasion Demand Engine** (powered by Google Calendar's continuous national holiday feed), and an **Event Action Planning & Safe Draft Execution System**.
 
 ---
 
@@ -10,10 +10,27 @@ LocalPulse AI is a production-grade, hyper-local demand forecasting and collabor
 
 1. [High-Level System Design & Architecture](#1-high-level-system-design--architecture)
 2. [Domain Architecture & Core Subsystems](#2-domain-architecture--core-subsystems)
+   - [A. Weekday-Aware Demand Forecasting Engine](#a-weekday-aware-demand-forecasting-engine)
+   - [B. Deterministic Margin Protection Engine (12% Invariant)](#b-deterministic-margin-protection-engine-12-invariant)
+   - [C. Live All-India Occasions & Google Calendar Demand Engine](#c-live-all-india-occasions--google-calendar-demand-engine)
+   - [D. Event Action Planning & Safe Draft Execution Engine](#d-event-action-planning--safe-draft-execution-engine)
+   - [E. Collaboration Intelligence & 6-Factor Synergy Bundles](#e-collaboration-intelligence--6-factor-synergy-bundles)
+   - [F. Two-Tier Action Guards & Business Rule Verification](#f-two-tier-action-guards--business-rule-verification)
+   - [G. Indic Voice-to-Text & Grounded Multi-Turn Copilot](#g-indic-voice-to-text--grounded-multi-turn-copilot)
+   - [H. 3-Tier Dynamic Catalog Pricing Engine](#h-3-tier-dynamic-catalog-pricing-engine)
+   - [I. Tri-Category Prioritized Operational Actions](#i-tri-category-prioritized-operational-actions)
 3. [End-to-End Data Flow Architecture](#3-end-to-end-data-flow-architecture)
+   - [Collaboration Proposal & Mutual Approval Lifecycle](#collaboration-proposal--mutual-approval-lifecycle)
+   - [Occasion Action Plan to Audited Mutation Lifecycle](#occasion-action-plan-to-audited-mutation-lifecycle)
 4. [Database & Spatial Schema Design](#4-database--spatial-schema-design)
 5. [Complete API Specifications](#5-complete-api-specifications)
-6. [Design System & UI Architecture (Dribbble Modern Redesign)](#6-design-system--ui-architecture)
+   - [Authentication & Tenant Context (`/api/auth`)](#authentication--tenant-context-apiauth)
+   - [Neighborhood Spatial Radar & Occasions (`/api/neighborhood`)](#neighborhood-spatial-radar--occasions-apineighborhood)
+   - [AI Business Copilot & Voice (`/api/copilot`)](#ai-business-copilot--voice-apicopilot)
+   - [Multi-Merchant Collaborations (`/api/collaborations`)](#multi-merchant-collaborations-apicollaborations)
+   - [Campaign Results & 3-Tier Pricing (`/api/campaigns`)](#campaign-results--3-tier-pricing-apicampaigns)
+   - [System Reset (`/api/seed/reset`)](#system-reset-apiseedreset)
+6. [Design System & UI Architecture (Dribbble Modern Redesign)](#6-design-system--ui-architecture-dribbble-modern-redesign)
 7. [AI Business Copilot & Indic Voice Pipeline](#7-ai-business-copilot--indic-voice-pipeline)
 8. [Project Directory Topology](#8-project-directory-topology)
 9. [Local Setup & Production Cloud Deployment](#9-local-setup--production-cloud-deployment)
@@ -29,14 +46,15 @@ graph TB
     subgraph ClientTier ["Client Tier (Next.js 16 App Router · Port 3000)"]
         UI_DASH["Overview / Dashboard"]
         UI_DEMAND["Demand & Inventory Runway"]
-        UI_COPILOT["AI Business Copilot (Voice + Text)"]
-        UI_MAP["Local Map & Events Calendar"]
-        UI_COLLAB["Cross-Merchant Collaborations"]
+        UI_COPILOT["AI Business Copilot (Voice + Text + Inline Charts)"]
+        UI_MAP["Neighborhood Map & All-India Calendar"]
+        UI_ACTION_PLAN["Event Action Plan & Draft Modal"]
+        UI_COLLAB["Cross-Merchant Collaborations Hub"]
         UI_CAMP["Campaign Results & Simulator"]
         
-        LEAFLET["Leaflet Spatial Map Engine"]
+        LEAFLET["Leaflet Store Network Map Engine"]
         RECHARTS["Recharts Data Visualizations"]
-        VOICE_REC["MediaRecorder Audio Streamer"]
+        VOICE_REC["MediaRecorder Indic Audio Streamer"]
         AUTH_CTX["AuthContext + JWT Storage"]
     end
 
@@ -50,32 +68,40 @@ graph TB
     subgraph ServiceTier ["Domain & Micro-Service Engines"]
         FORECAST_ENG["Forecasting Engine (Weekday Moving Avg)"]
         MARGIN_ENG["Margin Protection Engine (12% Guardrail)"]
-        SPATIAL_ENG["Spatial Geolocation & Haversine Radar"]
-        CAMPAIGN_ENG["Campaign Lifecycle & Monte Carlo Simulator"]
-        COPILOT_ROUTER["Multi-Turn Copilot Intent & Memory Engine"]
+        OCCASIONS_ENG["Occasions & Google Calendar Demand Engine"]
+        EVENT_ACTIONS["Event Action Planning Engine"]
+        COLLAB_INTEL["Collab Intelligence & 6-Factor Synergy Engine"]
+        ACTION_GUARDS["Action Guards (Two-Tier Safety Verification)"]
+        COPILOT_ROUTER["Multi-Turn Copilot Intent, Memory & Tool Dispatcher"]
+        TIME_PERIODS["Natural Language Date-Range Parser"]
     end
 
-    subgraph ExternalServices ["External Intelligence & Voice Tier"]
+    subgraph ExternalServices ["External Intelligence & Real Feeds"]
         SARVAM_STT["Sarvam AI (Saaras Model) Multilingual STT"]
-        GEMINI_LLM["Google Gemini 1.5 Flash (google-genai SDK)"]
-        FALLBACK_RULES["Deterministic Zero-Cost Rule Engine"]
+        GEMINI_LLM["Google Gemini 3.8 Flash (google-genai SDK)"]
+        GCAL_FEED["Google Calendar All-India Holiday iCal Feed (Zero-Key Live)"]
+        FALLBACK_RULES["Deterministic Zero-Cost Fallback Rule Engine"]
     end
 
     subgraph PersistenceTier ["Persistence Tier (MongoDB Atlas / Async Motor)"]
         COL_MERCHANTS["merchants (w/ GPS Coordinates)"]
-        COL_PRODUCTS["products"]
-        COL_SALES["sales (90-day partitioned history)"]
-        COL_MOVEMENTS["inventory_movements (Audit Ledger)"]
+        COL_PRODUCTS["products (3-Tier Pricing Model)"]
+        COL_SALES["sales (90-Day Partitioned History)"]
+        COL_MOVEMENTS["inventory_movements (Audited Restock Ledger)"]
         COL_COLLABS["collaborations (Mutual Signoff)"]
         COL_CAMPAIGNS["campaigns & campaign_redemptions"]
-        COL_EVENTS["neighborhood_events"]
-        COL_CHAT["copilot_messages (Multi-turn Memory)"]
+        COL_OCCASION_CACHE["merchant_occasion_insights (24h Gemini Cache)"]
+        COL_CHAT["copilot_messages (Multi-turn Isolated Memory)"]
     end
 
     ClientTier -->|"Axios HTTP / Multipart Voice (Bearer JWT)"| GatewayTier
     GatewayTier --> AUTH_GUARD
     AUTH_GUARD --> ServiceTier
     
+    OCCASIONS_ENG -->|"Live iCal Stream"| GCAL_FEED
+    OCCASIONS_ENG -->|"Catalog Enrichment"| GEMINI_LLM
+    COLLAB_INTEL -->|"Bundle Naming & Pitch"| GEMINI_LLM
+    EVENT_ACTIONS --> ACTION_GUARDS
     COPILOT_ROUTER -->|"Audio Payload"| SARVAM_STT
     COPILOT_ROUTER -->|"Context Grounded Prompt"| GEMINI_LLM
     COPILOT_ROUTER -->|"Offline Fallback"| FALLBACK_RULES
@@ -87,50 +113,84 @@ graph TB
 
 | Layer | Technology | Architectural Rationale |
 |:---|:---|:---|
-| **Frontend Framework** | **Next.js 16 (App Router), React 19** | Zero-bundle server components, instant route prefetching, Turbopack builds. |
+| **Frontend Framework** | **Next.js 16 (App Router), React 19** | Zero-bundle server components, instant route prefetching, Turbopack builds (12 routes statically prerendered with 0 errors). |
 | **Styling & Theme** | **Tailwind CSS v4** | Dark charcoal (`#16181a`), neon lime (`#e0fd53`), warm putty canvas (`#edece4`), zero emojis. |
-| **Spatial Mapping** | **Leaflet with Carto Voyager** | Client-side dynamic loading, custom `L.divIcon` HTML markers, zero external image 404 bugs. |
-| **Data Visualization** | **Recharts** | Responsive SVG charts with custom high-contrast tooltips (`#16181a` backdrop with lime/white typography). |
+| **Spatial Mapping** | **Leaflet with OpenStreetMap** | Standard OpenStreetMap tiles dedicated strictly to Merchant Network stores (`YOUR STORE` + nearby partner shops). |
+| **Data Visualization** | **Recharts** | Responsive SVG charts with custom high-contrast tooltips (`#16181a` backdrop with lime/white typography), plus inline charts inside Copilot chat. |
 | **Backend Framework** | **FastAPI (Python 3.12)** | Asynchronous non-blocking concurrency, automatic OpenAPI schemas, native Pydantic v2 validation. |
 | **Security & Auth** | **PyJWT (HS256) & Argon2id** | Cryptographically hardened password hashing via `argon2-cffi`, tenant-isolated tokens. |
-| **Database** | **MongoDB Atlas + Motor** | Non-blocking async queries, schema flexibility for products and geo-spatial coordinates. |
+| **Database** | **MongoDB Atlas + Motor** | Non-blocking async queries, schema flexibility for products, sales, and audit ledgers. |
 | **Voice Processing** | **Sarvam AI (Saaras Model)** | High-accuracy Speech-to-Text across 10+ Indic languages (Hindi, Tamil, Telugu, Kannada, Bengali, etc.) and Indian English. |
-| **LLM Reasoning** | **Google Gemini 1.5 Flash** | Sub-second generative explanations grounded strictly in store catalog and historical sales. |
+| **LLM Reasoning** | **Google Gemini 3.8 Flash** | Fast, high-accuracy generative reasoning grounded strictly in store catalog and historical sales. |
+| **Calendar & Festivals** | **Google Calendar Live iCal Feed** | Official All-India holidays and festivals (`en.indian#holiday@group.v.calendar.google.com`), 100% free with zero API key dependencies. |
 
 ---
 
 ## 2. Domain Architecture & Core Subsystems
 
 ### A. Weekday-Aware Demand Forecasting Engine
-*File: `backend/app/services/forecasting.py`*
+*File: [`backend/app/services/forecasting.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/forecasting.py)*
 - **Algorithmic Strategy:** Stratified historical moving averages that distinguish weekend surges (Saturday/Sunday multiplier of 1.4x) from standard weekday trading baselines.
 - **Stockout Runway Formulation:**
   $$\text{Daily Burn Rate} = \frac{\sum_{i=1}^{7} \text{Projected Units}_i}{7}$$
   $$\text{Runway Days} = \frac{\text{Current Stock}}{\text{Daily Burn Rate}}$$
 - **Outputs:** 7-day projected unit volumes, expected daily store receipts, runway days remaining, stockout risk severity (`HIGH`, `MEDIUM`, `HEALTHY`), and algorithmic replenishment batch sizes.
 
-### B. Deterministic Margin Protection Engine
-*File: `backend/app/services/collaboration.py`*
+### B. Deterministic Margin Protection Engine (12% Invariant)
+*File: [`backend/app/services/collaboration.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/collaboration.py)*
 - **The 12% Invariant:** Local retailers frequently suffer from discount-driven margin cannibalization. LocalPulse strictly enforces that **no multi-merchant bundle can be submitted if either merchant's post-discount margin drops below 12%**.
   $$\text{Discounted Selling Price} = \text{Original Selling Price} \times (1 - \text{Discount Rate})$$
   $$\text{Gross Margin \%} = \frac{\text{Discounted Selling Price} - \text{Cost Price}}{\text{Discounted Selling Price}} \times 100$$
 - **Pre-Flight Validation:** If an initiator attempts to discount an item too aggressively, the real-time validator rejects the bundle and reports the exact economic shortfall before submission.
 
-### C. Spatial Proximity Radar & Community Calendar
-*Files: `backend/app/api/routes/neighborhood.py`, `frontend/src/components/map/NeighborhoodMap.js`*
-- **Haversine Geodesic Distance:**
-  $$d = 2R \arcsin\left(\sqrt{\sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right)}\right)$$
-  Calculates exact walking distances in meters between neighbouring shops in the Indiranagar cluster.
-- **Retail Demand Catalysts:** Community festivals (Diwali), payroll credit weekends, farmers markets, and cricket screenings are mapped with coordinate pins and category demand multipliers (e.g. Traditional Sweets +160%, Grains +130%).
+### C. Live All-India Occasions & Google Calendar Demand Engine
+*File: [`backend/app/services/occasions.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/occasions.py)*
+- **Continuous National Calendar Feed:** Automatically consumes Google Calendar's live All-India public iCal feed (`en.indian#holiday@group.v.calendar.google.com`). It tracks national public holidays, regional festivals (Diwali, Holi, Pongal, Eid, Dussehra, Ganesh Chaturthi, Raksha Bandhan, Onam), and seasonal observances with zero manual data entry and zero API key requirements.
+- **Real-Catalog Gemini Grounding:** Occasion advice is dynamically customized by Google Gemini 3.8 Flash using the merchant's actual 15 top products. It predicts category demand surges (+110% to +180%) and generates store-specific inventory tips and Paytm Soundbox checkout preparation rules (e.g. water-protective wrapping for Soundbox during Holi, volume maximization for Diwali evening rushes, pre-packing ₹100/₹200 sweet boxes for swift QR scanning).
+- **Two-Tier Caching:** Responses are cached in-memory (12-hour TTL) and persisted in MongoDB (`merchant_occasion_insights`, 24-hour TTL) so overview pages and maps load instantaneously (<10ms).
+- **Decoupled Map & Calendar:** Calendar occasions act as neighborhood demand catalysts displayed on the interactive calendar, while the spatial map is cleanly dedicated to physical merchant storefront pins.
 
-### D. Indic Voice-to-Text & Grounded Copilot
-*Files: `backend/app/services/sarvam_voice.py`, `backend/app/services/copilot.py`*
-- **Speech Streaming:** Captures microphone streams, encodes into standard 16kHz WAV buffers, and transcribes via Sarvam AI's REST endpoint across 10+ Indic languages.
-- **Persistent Chat Memory & Contextual Pronoun Resolution:** Conversations are stored in `copilot_messages` with session isolation per merchant. Multi-turn reasoning resolves ambiguous pronouns ("it", "this product", "restock that") to recently discussed catalog items.
-- **Audited Confirmation Pattern:** AI suggests operational actions (e.g., restocking 50 units or launching a 10% promo), but **never performs mutations without explicit user sign-off**. The frontend renders a structured draft proposal card requiring a physical click on **Confirm & Apply**.
+### D. Event Action Planning & Safe Draft Execution Engine
+*Files: [`backend/app/services/event_actions.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/event_actions.py), [`frontend/src/components/actions/EventActionPlan.js`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/frontend/src/components/actions/EventActionPlan.js), [`frontend/src/components/actions/ActionDraftCard.js`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/frontend/src/components/actions/ActionDraftCard.js)*
+- **Automated Opportunity Sizing:** When a merchant inspects an occasion (e.g. Diwali on 8 Nov), LocalPulse analyzes the store's 120-day historical sales, current stock levels, and forecasted festival uplift to produce an actionable game plan:
+  1. **`RESTOCK_INVENTORY` Drafts:** Accurately sizes reorder batches for affected items to ensure adequate coverage through the festival days plus a safe replenishment buffer.
+  2. **`CREATE_CAMPAIGN` Festival Offer Drafts:** Prices small, tasteful promotional offers (capped at 8% max discount for festivals) that strictly stay above wholesale cost.
+  3. **Partner Bundle Collaboration Ideas:** Surfaces synergistic pairings with neighbouring partner stores.
+  4. **Historical & Timing Insights:** Compares past festival occurrences (revenue uplift, units moved) and alerts the merchant if it is too early or the optimal ordering window (e.g. 3 days before).
+- **Audited Confirmation Pattern:** The action plan is strictly read-only. Proposed restocks and offers render as structured draft cards requiring an explicit click on **Confirm Action**, which dispatches to `POST /api/copilot/confirm-action` validated server-side by `action_guards.py`.
 
-### E. 3-Tier Dynamic Catalog Pricing Engine
-*Files: `backend/app/services/campaign.py`, `backend/app/services/forecasting.py`, `backend/app/schemas/copilot.py`*
+### E. Collaboration Intelligence & 6-Factor Synergy Bundles
+*Files: [`backend/app/services/collab_intelligence.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/collab_intelligence.py), [`frontend/src/components/collab/ProposalModal.js`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/frontend/src/components/collab/ProposalModal.js)*
+- **6-Factor Partner Compatibility Scoring:** Instead of a static category table, every candidate product pairing across shops is evaluated against real operational signals:
+  1. **Customer Buy-Together Link (0..1):** Evaluates multi-category basket affinity (e.g. Tea + Bakery = 1.00, Milk + Bakes = 0.95, Staples + Oil = 0.90, Chai + Sweets = 0.85).
+  2. **Surplus Stock Relief:** Prioritizes moving the merchant's high-runway stock while excluding items near or below reorder levels.
+  3. **Partner Sales Pull:** Verifies that the partner's item sells at high velocity to drive genuine cross-store footfall.
+  4. **Price Balance Ratio:** Enforces price harmony (e.g. pairing a ₹30 snack with a ₹40 tea rather than a ₹1,500 saree).
+  5. **Upcoming Festival Uplift:** Detects if an impending occasion boosts demand for both items.
+  6. **Geographic Proximity:** Calculates exact walking distance using the Haversine formula.
+- **Safe Auto-Pricing:** Slices discount rates so both stores maintain at least 14% gross margin (12% invariant + 2% safety buffer).
+- **AI-Powered Pitches:** Gemini generates catchy bundle titles and consumer marketing pitches, while all financial figures remain deterministically validated by Python code.
+
+### F. Two-Tier Action Guards & Business Rule Verification
+*File: [`backend/app/services/action_guards.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/action_guards.py)*
+- **Dual Verification Architecture:** Business guards are executed twice:
+  1. *At Draft Creation Time:* Prevents the AI or rule engine from ever showing an economically invalid or loss-making proposal.
+  2. *At Execution Time (`/copilot/confirm-action`):* Because payloads return from the client, the server strictly re-validates all parameters before committing any database writes.
+- **Enforced Rules:**
+  - `check_quantity`: Quantities must be positive integers capped at 10,000 units.
+  - `check_discount`: Discounts must be bounded between 1.0% and 50.0%.
+  - `check_discount_vs_cost`: Rejects discounts that drop selling price below wholesale cost price (`selling_price * (1 - d) >= cost_price`).
+  - `check_new_product`: Verifies name length ($\ge 2$ chars) and strictly positive cost and selling prices.
+
+### G. Indic Voice-to-Text & Grounded Multi-Turn Copilot
+*Files: [`backend/app/services/sarvam_voice.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/sarvam_voice.py), [`backend/app/services/copilot.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/copilot.py), [`backend/app/services/copilot_executor.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/copilot_executor.py), [`backend/app/services/time_periods.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/time_periods.py)*
+- **Speech Streaming:** Captures microphone streams, encodes into standard 16kHz WAV buffers, and transcribes via Sarvam AI's Saaras model across 10+ Indic languages.
+- **Natural Date-Range Resolution:** Interprets conversational time expressions ("yesterday", "last week", "past 30 days", "this month") using `time_periods.py` to query historical sales records by explicit date ranges rather than arbitrary record limits.
+- **Persistent Chat Memory & Contextual Pronoun Resolution:** Stores conversation logs in `copilot_messages` with merchant session isolation. Resolves pronouns ("it", "this product", "restock that") to recently discussed catalog items.
+- **Interactive Inline Visual Charts (`ChartOffer.js`):** Copilot responses can attach interactive Recharts bar charts (top selling products) or column charts (daily sales trends) directly inside the chat interface.
+
+### H. 3-Tier Dynamic Catalog Pricing Engine
+*Files: [`backend/app/services/campaign.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/campaign.py), [`backend/app/services/forecasting.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/forecasting.py)*
 - **3-Tier Price Invariant:** Every catalog product tracks three distinct economic figures:
   1. `cost_price`: Wholesaler inventory acquisition cost.
   2. `selling_price`: Baseline retail list price / default MRP.
@@ -141,9 +201,9 @@ graph TB
   - **Campaign Completion:** When a campaign concludes or is terminated, `effective_selling_price` automatically reverts to baseline `selling_price`.
 - **System-Wide Grounding:** Daily revenue projections, 7-day demand forecasting, historical margin analysis, and AI Copilot reasoning strictly consume `effective_selling_price`.
 
-### F. Tri-Category Prioritized Operational Actions (Overview Engine)
-*File: `backend/app/api/routes/dashboard.py`*
-- **Algorithmic Prioritization:** Rather than displaying generic or unranked recommendations, the executive overview surfaces the single highest-priority operational decision across three distinct categories:
+### I. Tri-Category Prioritized Operational Actions
+*File: [`backend/app/api/routes/dashboard.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/api/routes/dashboard.py)*
+- **Algorithmic Prioritization:** Rather than displaying generic recommendations, the executive overview surfaces the single highest-priority operational decision across three distinct categories:
   1. **Most Urgent Restock:** Identified by lowest runway days (< 5 days) and highest daily sales velocity.
   2. **Top Recommended Discount:** Highest inventory holding with low turnover to free up idle working capital.
   3. **Targeted Buffer Discount:** Lowest stock item paired with the minimum required discount percentage to clear remaining buffer before expiration without sacrificing margins.
@@ -160,13 +220,18 @@ sequenceDiagram
     actor A as Merchant A (Initiator)
     participant UI as LocalPulse Frontend
     participant API as FastAPI Backend
+    participant INTEL as Collab Intelligence Engine
     participant DB as MongoDB Atlas
     actor B as Merchant B (Partner)
 
-    A->>UI: Selects Partner B & builds bundle
+    A->>UI: Clicks "Propose Bundle" (Collaborations or Map)
+    UI->>API: GET /api/collaborations/discover
+    API->>INTEL: load_suggestions(merchant_A)
+    INTEL-->>API: 6-factor affinity score + pre-validated bundle
+    API-->>UI: Pre-fills ProposalModal with 14% safe margins
+    A->>UI: Adjusts discount & clicks "Submit Proposal"
     UI->>API: POST /api/collaborations/validate-margins
-    API-->>UI: Margin Check (Initiator: 18.2%, Partner: 14.5% >= 12% Threshold)
-    A->>UI: Clicks "Submit Proposal"
+    API-->>UI: Margin Check OK (Both >= 12% Threshold)
     UI->>API: POST /api/collaborations/proposals
     API->>DB: Insert proposal (status: PENDING_APPROVAL, initiator_approved: true, partner_approved: false)
     Note over B,UI: Merchant B logs in or switches context
@@ -178,6 +243,34 @@ sequenceDiagram
     UI->>API: POST /api/collaborations/proposals/{id}/respond?action=APPROVE
     API->>DB: Update (partner_approved: true, status: APPROVED)
     API-->>UI: Returns active collaborative combo
+```
+
+### Occasion Action Plan to Audited Mutation Lifecycle
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor M as Merchant
+    participant UI as LocalPulse Frontend
+    participant API as FastAPI Backend
+    participant ACT as Event Actions Service
+    participant GUARD as Action Guards
+    participant DB as MongoDB Atlas
+
+    M->>UI: Clicks "Action Plan" on Festival in Calendar
+    UI->>API: POST /api/neighborhood/events/action-plan
+    API->>DB: Query 120-day sales, current stock & products
+    API->>ACT: build_event_action_plan(event, merchant, products, sales)
+    ACT->>GUARD: Validate candidate discounts & reorder batches
+    ACT-->>API: Action plan (Restock drafts, festive offer draft, partner ideas)
+    API-->>UI: Renders EventActionPlan modal with ActionDraftCards
+    M->>UI: Clicks "Confirm Action" on Restock Draft
+    UI->>API: POST /api/copilot/confirm-action {action_type: RESTOCK_INVENTORY, payload}
+    API->>GUARD: Re-verify quantity > 0 and <= 10,000
+    API->>DB: Atomically increment product current_stock
+    API->>DB: Append audit log to inventory_movements ledger
+    API-->>UI: 200 OK (Confirmed & Executed)
+    UI-->>M: Card transitions to "Applied" with green checkmark
 ```
 
 ---
@@ -209,27 +302,26 @@ All documents reside in the **`localpulse`** MongoDB database.
 }
 ```
 
-### `neighborhood_events` Collection
+### `merchant_occasion_insights` Collection (24-Hour Gemini Cache)
 ```json
 {
   "_id": "ObjectId(...)",
-  "event_id": "event-001-diwali",
-  "title": "Diwali Festival Shopping & Gifting Rush",
-  "description": "Peak festive season shopping across Indiranagar 100ft & CMH Road.",
-  "start_date": "2026-11-01",
-  "end_date": "2026-11-05",
-  "location_name": "Indiranagar 100ft & CMH Rd Retail Corridor",
-  "coordinates": { "lat": 12.9730, "lng": 77.6410 },
-  "category_impacts": [
-    {
-      "category": "Traditional Sweets",
-      "multiplier": 2.6,
-      "projected_demand_change_pct": 160,
-      "highlight_products": ["Kaju Katli", "Spicy Mixture"]
+  "merchant_id": "merchant-001",
+  "updated_at": 1793405100.0,
+  "insights": {
+    "diwali": {
+      "severity": "HIGH",
+      "recommended_action": "Stock up on Kaju Katli and Atta gift packs. Maximize Paytm Soundbox audio volume for peak evening checkout rush.",
+      "category_impacts": [
+        {
+          "category": "Traditional Sweets",
+          "multiplier": 2.8,
+          "projected_demand_change_pct": 180,
+          "highlight_products": ["Kaju Katli", "Motichoor Ladoo"]
+        }
+      ]
     }
-  ],
-  "recommended_action": "Maintain buffer inventory of 50+ packs of Chakki Atta and sweet gift hampers.",
-  "severity": "HIGH"
+  }
 }
 ```
 
@@ -243,7 +335,7 @@ All documents reside in the **`localpulse`** MongoDB database.
   "category": "Dairy",
   "cost_price": 66.0,
   "selling_price": 74.0,
-  "effective_selling_price": 74.0, // Discounted during active campaigns; restored to selling_price on campaign end
+  "effective_selling_price": 74.0,
   "current_stock": 9,
   "reorder_threshold": 25,
   "unit": "cartons",
@@ -251,7 +343,7 @@ All documents reside in the **`localpulse`** MongoDB database.
 }
 ```
 
-### `sales` & `inventory_movements` Ledger
+### `sales` & `inventory_movements` Audit Ledger
 ```json
 // sales
 {
@@ -274,27 +366,39 @@ All documents reside in the **`localpulse`** MongoDB database.
   "quantity_change": 50,
   "stock_before": 9,
   "stock_after": 59,
-  "notes": "Audited restock via AI Copilot",
+  "notes": "Audited restock via Occasion Action Plan",
   "created_at": "2026-10-31T05:22:10Z"
 }
 ```
 
-### `copilot_messages` Collection (Persistent Multi-Turn Memory)
+### `copilot_messages` Collection (Persistent Multi-Turn Memory with Charts)
 ```json
 {
   "_id": "ObjectId(...)",
   "merchant_id": "merchant-001",
   "role": "assistant",
   "content": "Amul Taaza Milk has 9 cartons left (1.3 days runway). Would you like to restock 50 cartons?",
-  "pending_action": {
+  "draft_action": {
     "action_type": "RESTOCK_INVENTORY",
-    "params": {
+    "title": "Restock Amul Taaza Milk 1L",
+    "description": "Order 50 cartons to cover upcoming Diwali surge.",
+    "payload": {
       "product_id": "prod-001-milk",
       "quantity": 50
     },
-    "description": "Restock 50 cartons of Amul Taaza Homogenised Toned Milk 1L"
+    "requires_confirmation": true,
+    "status": "CONFIRMED"
   },
-  "action_confirmed": true,
+  "chart": {
+    "kind": "bars",
+    "title": "Top Selling Products (Past 7 Days)",
+    "value_label": "Revenue",
+    "value_prefix": "₹",
+    "points": [
+      { "label": "Amul Taaza Milk", "value": 13440.0, "full_label": "Amul Taaza Homogenised Toned Milk 1L" }
+    ],
+    "auto_open": true
+  },
   "created_at": "2026-10-31T06:14:22Z"
 }
 ```
@@ -312,41 +416,63 @@ Interactive Swagger UI documentation is served live at: **`http://localhost:8000
 - `GET /api/auth/demo-merchants`: Fetch all seeded synthetic merchants for instant review.
 - `POST /api/auth/switch-demo`: Instantly swap JWT context to another merchant account.
 
-### Local Map & Neighborhood Spatial Radar (`/api/neighborhood`)
-- `GET /api/neighborhood/merchants`: Returns all neighboring stores with calculated Haversine distance, street address, and category synergy scores.
-- `GET /api/neighborhood/events`: Fetches scheduled community footfall events with geographic coordinates and category demand multipliers.
-- `GET /api/neighborhood/summary`: Spatial cluster summary (count of nearby partners, closest store distance, active event count).
+### Neighborhood Spatial Radar & Occasions (`/api/neighborhood`)
+- `GET /api/neighborhood/merchants`: Returns all neighboring stores with calculated Haversine distance, street address, and 6-factor synergy score (`has_bundle`, `synergy_type`, `synergy_rationale`, `top_products`).
+- `GET /api/neighborhood/events`: Fetches live All-India occasions from Google Calendar, enriched with Gemini real-catalog advice, demand multipliers, and Paytm Soundbox tips.
+- `GET /api/neighborhood/summary`: Spatial cluster summary (count of nearby partners, closest store distance, upcoming event count).
+- `POST /api/neighborhood/events/action-plan`: Generates concrete, confirmable draft actions for a clicked occasion (restock drafts, festival discount offers, partner bundle ideas, and past performance insights).
+  ```json
+  // Request
+  {
+    "event_id": "event-diwali",
+    "title": "Diwali",
+    "start_date": "2026-11-08",
+    "end_date": "2026-11-08",
+    "severity": "HIGH",
+    "category_impacts": []
+  }
+  ```
 
-### AI Copilot & Voice (`/api/copilot`)
-- `POST /api/copilot/chat`: Dual-format request body (`message` or `query`) with multi-turn MongoDB memory. Returns grounded reply, evidence tags, and pending draft mutation card.
-- `POST /api/copilot/voice-to-text`: Multipart audio upload converted to text via Sarvam AI (supports Hindi, Tamil, Telugu, Kannada, Bengali, Marathi, and English).
-- `POST /api/copilot/confirm-action`: Explicit execution of proposed draft action (`RESTOCK_INVENTORY`, `CREATE_CAMPAIGN`, `ADD_PRODUCT`).
-- `GET /api/copilot/history`: Retrieves isolated conversation log for the active merchant.
+### AI Business Copilot & Voice (`/api/copilot`)
+- `POST /api/copilot/chat`: Conversational copilot with multi-turn memory, natural date parsing (`time_periods.py`), inline charts (`ChartData`), and draft action proposals.
+- `POST /api/copilot/voice-to-text`: Multipart audio upload converted to text via Sarvam AI across 10+ Indic languages.
+- `POST /api/copilot/confirm-action`: Explicit execution of proposed draft action (`RESTOCK_INVENTORY`, `CREATE_CAMPAIGN`, `ADD_PRODUCT`) with server-side safety validation via `action_guards.py`.
+- `GET /api/copilot/history`: Retrieves isolated conversation log including charts and draft statuses.
 - `DELETE /api/copilot/history`: Resets conversational memory for a fresh session.
 
 ### Multi-Merchant Collaborations (`/api/collaborations`)
-- `GET /api/collaborations/discover`: Discovers local cross-promotion partners with calculated complementary pairings.
-- `POST /api/collaborations/validate-margins`: Deterministic math checking the 12% safety threshold for both shops.
+- `GET /api/collaborations/discover`: Discovers local cross-promotion partners ranked by the 6-factor synergy engine with pre-validated, margin-safe bundle proposals.
+- `POST /api/collaborations/validate-margins`: Deterministic math verifying the 12% safety threshold for both participating shops.
 - `POST /api/collaborations/proposals`: Submits a new cross-store bundle proposal.
 - `POST /api/collaborations/proposals/{id}/respond?action=APPROVE`: Records partner sign-off and activates the combo.
 
+### Campaign Results & 3-Tier Pricing (`/api/campaigns`)
+- `GET /api/campaigns`: Lists active and past marketing campaigns.
+- `POST /api/campaigns`: Creates and launches a campaign, automatically calculating and committing discounted `effective_selling_price` across targeted products.
+- `POST /api/campaigns/{id}/end`: Terminates a campaign, automatically restoring `effective_selling_price` back to baseline `selling_price`.
+
 ### System Reset (`/api/seed/reset`)
-- `POST /api/seed/reset`: Re-seeds all 6 Indiranagar merchants, sets exact shop coordinates, resets inventory to baseline, regenerates 90-day sales, and restores 7 retail events.
+- `POST /api/seed/reset`: Re-seeds all 6 Indiranagar merchants, sets exact shop coordinates, resets inventory to baseline, regenerates 90-day sales, and restores initial state.
 
 ---
 
-## 6. Design System & UI Architecture
+## 6. Design System & UI Architecture (Dribbble Modern Redesign)
 
-Inspired by premium dashboard aesthetics (Dribbble management dashboard concepts), LocalPulse adheres to a strict design system:
+Inspired by premium dashboard aesthetics, LocalPulse adheres to a strict design system:
 
 - **Curated Colour Palette:**
-  - Background: Warm putty stone canvas (`#edece4`)
+  - Background Canvas: Warm putty stone (`#edece4`)
   - Primary Panels & Floating Sidebar: Deep charcoal (`#16181a` / `#151719`)
   - Highlighting & Accents: Electric lime (`#e0fd53`)
   - Alert & Safety States: Terracotta (`#c25e4e`), Amber (`#8c5208`), Mineral Sage (`#2d5a27`)
+- **Official Brand Identity:** Clean branding via [`frontend/src/components/ui/Logo.js`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/frontend/src/components/ui/Logo.js) paired with dedicated brand assets in `frontend/public/brand/` and root icons (`apple-icon.png`, `icon.png`, `favicon.ico`).
 - **Zero Emojis:** Replaced entirely with crisp vector iconography via `lucide-react`.
-- **Display Typography:** High-contrast tracking, bold headers, and monospace coordinates.
-- **Fixed-Frame Full-Height Copilot:** Eliminates vertical page gaps, matching the bottom radius of the floating sidebar.
+- **Specialized Modal & Drawer Components:**
+  - `EventActionPlan.js`: Rich popup displaying festival demand surges, restock candidate drafts, festival offers, and partner bundle suggestions.
+  - `ActionDraftCard.js`: Action card with inline parameters and instant "Confirm Action" mutation trigger.
+  - `ProposalModal.js`: Multi-store bundle configuration modal with live 12% margin validation before submission.
+  - `ChartOffer.js`: Inline interactive Recharts component embedded inside Copilot chat.
+  - `RecommendationBanner.js`: High-visibility banner highlighting prioritized operational advice across pages.
 
 ---
 
@@ -356,9 +482,11 @@ Inspired by premium dashboard aesthetics (Dribbble management dashboard concepts
 graph LR
     A["Merchant Speaks in Indian Language"] -->|"WAV 16kHz Stream"| B["Sarvam AI (Saaras Model)"]
     B -->|"Transcribed Text"| C["Copilot Engine (/api/copilot/chat)"]
-    C -->|"Context Injection: Live Catalog + Sales History"| D["Google Gemini 1.5 Flash"]
-    D -->|"Structured Action Proposal"| E["Draft Mutation Card (Pending Confirmation)"]
-    E -->|"Physical User Confirmation"| F["Audited MongoDB Write (Stock/Campaign)"]
+    C -->|"Time Period Resolution (time_periods.py)"| D["Historical Sales (200-day window)"]
+    C -->|"Context Injection: Live Catalog + Forecasts"| E["Google Gemini 3.8 Flash"]
+    E -->|"DraftAction Proposal (RESTOCK/CAMPAIGN)"| F["Action Draft Card (Pending Confirmation)"]
+    F -->|"Physical Merchant Confirmation"| G["Server Action Guards Verification"]
+    G -->|"Audited MongoDB Write"| H["inventory_movements Ledger & Products Update"]
 ```
 
 ---
@@ -380,9 +508,9 @@ LocalPulse/
 │   ├── runtime.txt                     # Pinned Python runtime (3.12.1)
 │   └── app/
 │       ├── main.py                     # ASGI root, lifespan, CORS, route registry
-│       ├── seed.py                     # Synthetic data seeder (merchants, events, sales)
+│       ├── seed.py                     # Synthetic data seeder (merchants, products, sales)
 │       ├── core/
-│       │   ├── config.py               # Pydantic BaseSettings
+│       │   ├── config.py               # Pydantic BaseSettings (Gemini 3.8 Flash, Sarvam STT)
 │       │   └── security.py             # JWT encode/decode & Argon2id hashing
 │       ├── db/
 │       │   └── session.py              # Motor client & MongoDB connection pool
@@ -390,39 +518,56 @@ LocalPulse/
 │       │   ├── dependencies.py         # JWT bearer auth dependency
 │       │   └── routes/
 │       │       ├── auth.py             # Authentication & demo switching
-│       │       ├── dashboard.py        # Executive summary KPIs & trends
+│       │       ├── dashboard.py        # Executive summary KPIs & prioritized actions
 │       │       ├── demand.py           # Forecasts & 30-day sales runway
 │       │       ├── products.py         # Catalog CRUD & stock movements
-│       │       ├── copilot.py          # AI Copilot & Sarvam voice STT
-│       │       ├── neighborhood.py     # Spatial map radar & community events
-│       │       ├── collaborations.py   # Cross-store bundles & margin guards
-│       │       └── campaigns.py        # Marketing campaigns & redemption sim
+│       │       ├── copilot.py          # AI Copilot, Sarvam voice STT & action confirmation
+│       │       ├── neighborhood.py     # Map radar, live occasions & action plan endpoint
+│       │       ├── collaborations.py   # Cross-store bundles, margin guards & suggestions
+│       │       └── campaigns.py        # Marketing campaigns & 3-tier pricing sync
 │       ├── services/
-│       │   ├── forecasting.py          # Weekday-stratified moving average
+│       │   ├── forecasting.py          # Weekday-stratified moving average & stock runway
+│       │   ├── occasions.py            # Google Calendar iCal feed & Gemini catalog advice
+│       │   ├── event_actions.py        # Festival action plan generator (restocks/offers/ideas)
+│       │   ├── collab_intelligence.py  # 6-factor synergy engine & AI bundle pitch generator
+│       │   ├── action_guards.py        # Server-side business rule validation guards
+│       │   ├── time_periods.py         # Natural language date-range parser (yesterday/last week)
 │       │   ├── collaboration.py        # Margin arithmetic & partner discovery
-│       │   ├── copilot.py              # Copilot coordinator & memory
-│       │   ├── copilot_executor.py     # Tool execution & mutation drafts
+│       │   ├── copilot.py              # Copilot coordinator & memory management
+│       │   ├── copilot_executor.py     # Tool execution, draft generation & action commits
+│       │   ├── copilot_parser.py       # Intent recognition & slot extractor
+│       │   ├── copilot_tools.py        # Copilot tool registry & schemas
 │       │   ├── sarvam_voice.py         # Sarvam AI Indic STT client
 │       │   └── gemini.py               # Google GenAI SDK interface
 │       └── schemas/                    # Pydantic v2 schemas
 │           ├── auth.py
-│           ├── copilot.py
-│           ├── neighborhood.py
-│           └── collaboration.py
+│           ├── copilot.py              # DraftAction, ChartData, ChartPoint, chat schemas
+│           ├── neighborhood.py         # EventActionPlanRequest, EventActionPlanResponse
+│           ├── collaboration.py        # SuggestedBundle, DiscoverablePartner
+│           ├── forecast.py
+│           └── product.py
 │
 └── frontend/
     ├── package.json
     ├── .env.local                      # NEXT_PUBLIC_API_URL=http://localhost:8000
+    ├── public/
+    │   └── brand/
+    │       └── localpulse-logo.png     # Official high-resolution brand logo
     └── src/
         ├── app/
         │   ├── layout.js               # Global HTML root layout
         │   ├── globals.css             # Tailwind v4 theme & token variables
+        │   ├── favicon.ico             # Brand favicon
+        │   ├── icon.png                # Brand web icon
+        │   ├── apple-icon.png          # Apple touch icon
+        │   ├── page.js                 # Modern Dribbble landing page
         │   ├── login/page.js           # 1-click merchant auth portal
+        │   ├── signup/page.js          # Merchant onboarding portal
         │   ├── dashboard/page.js       # Overview with high-contrast Recharts
         │   ├── demand/page.js          # Demand runway & audited stock modals
-        │   ├── copilot/page.js         # Fixed-frame AI copilot with Sarvam voice
-        │   ├── neighborhood/page.js    # Interactive map, merchant radar & calendar
-        │   ├── collaborations/page.js  # Multi-merchant proposal workflow
+        │   ├── copilot/page.js         # Fixed-frame AI copilot with Sarvam voice & charts
+        │   ├── neighborhood/page.js    # Store network map, All-India calendar & action plans
+        │   ├── collaborations/page.js  # Multi-merchant 6-factor synergy proposals
         │   └── campaigns/page.js       # Campaign simulator & ROMS tracking
         ├── components/
         │   ├── layout/
@@ -430,13 +575,22 @@ LocalPulse/
         │   │   ├── Header.js           # Context title, demo switcher & reset modal
         │   │   └── Sidebar.js          # Floating charcoal navigation panel
         │   ├── map/
-        │   │   └── NeighborhoodMap.js  # Dynamic Leaflet spatial map
+        │   │   └── NeighborhoodMap.js  # Dynamic Leaflet store network map
         │   ├── calendar/
-        │   │   └── NeighborhoodCalendar.js # Interactive retail demand calendar
+        │   │   └── NeighborhoodCalendar.js # Live All-India demand calendar
+        │   ├── actions/
+        │   │   ├── EventActionPlan.js  # Festival opportunity action plan modal
+        │   │   └── ActionDraftCard.js  # Confirmable draft mutation card
+        │   ├── collab/
+        │   │   └── ProposalModal.js    # Joint-bundle proposal modal with margin check
+        │   ├── copilot/
+        │   │   └── ChartOffer.js       # Inline interactive Recharts visual charts
         │   └── ui/
+        │       ├── Logo.js             # Official brand vector/image component
         │       ├── Modal.js
         │       ├── Badge.js
-        │       └── StatCard.js
+        │       ├── StatCard.js
+        │       └── RecommendationBanner.js
         ├── context/AuthContext.js      # Global merchant auth provider
         └── lib/api.js                  # Axios client with bearer interceptor
 ```
@@ -476,12 +630,15 @@ JWT_SECRET=localpulse-super-secret-jwt-key-2026-paytm-ai-hackathon
 FRONTEND_URL=http://localhost:3000
 ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
-# Voice & AI (Optional: deterministic rule engine works offline without keys)
+# Voice & AI (Deterministic rule engine works offline without keys)
 SARVAM_API_KEY=your_sarvam_api_key
 SARVAM_STT_MODEL=saaras:v4
 LLM_API_KEY=your_gemini_api_key
 LLM_PROVIDER=gemini
-LLM_MODEL=gemini-2.5-flash
+LLM_MODEL=gemini-3.8-flash
+
+# Calendarific (Optional: Google Calendar All-India feed runs 100% free with zero keys)
+CALENDARIFIC_API_KEY=
 ```
 
 Launch the backend ASGI server:
@@ -525,7 +682,7 @@ LocalPulse is pre-configured for zero-friction cloud deployment pairing **FastAP
    | `JWT_SECRET` | 32+ character random string for cryptographically signing JWTs |
    | `FRONTEND_URL` | Your Vercel frontend URL (e.g. `https://localpulse-frontend.vercel.app`) |
    | `LLM_PROVIDER` | `gemini` |
-   | `LLM_MODEL` | `gemini-2.5-flash` |
+   | `LLM_MODEL` | `gemini-3.8-flash` |
    | `LLM_API_KEY` | Your Google Gemini API key (from [AI Studio](https://aistudio.google.com/app/apikey)) |
    | `SARVAM_API_KEY` | Your Sarvam AI key (from [Sarvam Dashboard](https://dashboard.sarvam.ai)) |
    | `SARVAM_STT_MODEL` | `saaras:v4` |
@@ -565,38 +722,50 @@ All accounts share the default password: **`password123`**
 
 ## 11. System Verification & End-to-End Walkthroughs
 
-### Workflow 1: Inspect Spatial Proximity & Community Events
+### Workflow 1: Inspect Store Network Map & All-India Demand Calendar
 1. In the sidebar, navigate to **Local Map & Events** (`/neighborhood`).
-2. Observe your store highlighted with a pulsing radar marker at `12.9702° N, 77.6428° E`.
-3. Inspect adjacent merchant markers showing real walking distances (`200m`, `420m`, etc.).
-4. Click on any event in the **Retail Demand Calendar** (e.g. *Diwali Festival Shopping*) to highlight its neighborhood location and view recommended inventory preparations.
+2. Observe your store highlighted with a distinct pulsing marker at `12.9702° N, 77.6428° E`.
+3. Inspect adjacent merchant markers showing exact walking distances (`200m`, `420m`, etc.) and pre-calculated category synergy pitches.
+4. Browse the **Live All-India Retail Demand Calendar** populated continuously from Google Calendar's national holiday feed with store-grounded Gemini replenishment tips.
 
-### Workflow 2: Voice-Driven AI Inventory Audit
+### Workflow 2: Generate & Execute an Occasion Action Plan
+1. On the **Local Map & Events** page, locate an upcoming festival (e.g. *Diwali* or *Holi*) and click **Action Plan**.
+2. The system executes `POST /api/neighborhood/events/action-plan`, evaluating your 120-day historical sales and projected uplift.
+3. Review the **Action Plan Modal**:
+   - Projected uplift and affected catalog items (e.g. Sweets, Dairy, Atta).
+   - Tailored **Restock Draft Cards** sized to cover demand plus buffer.
+   - Cost-safe **Festival Offer Campaign Drafts** (bounded by $\le 8\%$ and cost price).
+   - Complementary partner bundle suggestions.
+4. Click **Confirm Action** on a Restock Draft. The server re-verifies safety with `action_guards.py`, commits an atomic stock update to MongoDB, and records an audited movement in `inventory_movements`. The card updates immediately to **Applied** with a green checkmark.
+
+### Workflow 3: Voice-Driven AI Inventory Audit & Inline Charts
 1. Navigate to **AI Business Copilot** (`/copilot`).
 2. Click the **Mic** button and speak in Hindi, English, Tamil, or Telugu: *"Which items are running low on stock?"*
-3. The audio is transcribed via Sarvam AI and processed by Gemini/Rule engine.
-4. Review the grounded evidence showing Amul Taaza Milk below threshold.
-5. Click **Confirm & Apply** on the proposed Restock action to commit an audited write to MongoDB.
+3. The audio is transcribed via Sarvam AI's Saaras model and processed by Gemini 3.8 Flash.
+4. Ask: *"Show me top selling products as a chart for last week"*. Observe the copilot return an interactive horizontal Recharts bar chart directly within the message bubble.
+5. Click **Confirm & Apply** on the proposed Restock draft action to commit an audited write to MongoDB.
 
-### Workflow 3: Cross-Merchant Bundle with Margin Guard
+### Workflow 4: Cross-Merchant Bundle with 6-Factor Synergy & Margin Guard
 1. Navigate to **Collaborations** (`/collaborations`).
-2. Under **Nearby Store Partners**, click **Propose Bundle** for *Chai Point & Baker's Corner*.
-3. Test setting an aggressive 30% discount — observe the live 12% safety check turn red and block submission.
-4. Set safe 10% discounts on both items and click **Submit Proposal**.
-5. Use the header **Demo Merchant Switcher** to switch to *Chai Point & Baker's Corner*.
-6. In **Active Proposals**, click **Approve Combo** to activate the cross-store collaboration.
-
-### Workflow 4: Global Environment Reset
-1. Open the header **Merchant Switcher** or the top button on the **Local Map & Events** page.
-2. Click **Reset Entire Database**.
-3. Confirm the modal to re-seed all 6 merchants, restore exact GPS coordinates, refresh 90-day sales records, and regenerate all 7 community demand events.
+2. Review nearby partners ranked by 6-factor affinity (Customer Link, Stock Cover, Partner Pull, Price Ratio, Festive Uplift, Distance).
+3. Click **Propose Bundle** for *Chai Point & Baker's Corner*.
+4. Notice the pre-filled bundle and pitch generated by Gemini with safe 14% margins.
+5. Test setting an aggressive 35% discount — observe the live 12% safety check turn red and block submission.
+6. Set safe 10% discounts on both items and click **Submit Proposal to Partner**.
+7. Use the header **Demo Merchant Switcher** to switch to *Chai Point & Baker's Corner*.
+8. In **Active Proposals**, click **Approve Combo** to activate the cross-store collaboration.
 
 ### Workflow 5: Dynamic Campaign & 3-Tier Pricing Lifecycle
 1. Navigate to **Campaign Results** (`/campaigns`).
 2. Launch a new discount campaign (e.g. 10% *Special Discount* on select grocery essentials).
 3. Check the **Demand & Inventory Runway** (`/demand`): observe the active `effective_selling_price` reflects the discounted price while `cost_price` and default `selling_price` remain safely preserved.
 4. Verify that forecasted store receipts and Copilot recommendations dynamically evaluate the discounted price.
-5. Terminate or complete the campaign — observe the product catalog automatically restore `effective_selling_price` back to the default `selling_price`.
+5. Terminate or complete the campaign — observe the product catalog automatically restore `effective_selling_price` back to default `selling_price`.
+
+### Workflow 6: Global Environment Reset
+1. Open the header **Merchant Switcher** or the top button on the **Local Map & Events** page.
+2. Click **Reset Entire Database**.
+3. Confirm the modal to re-seed all 6 merchants, restore exact GPS coordinates, refresh 90-day sales records, and reset inventory to clean baselines.
 
 ---
 
