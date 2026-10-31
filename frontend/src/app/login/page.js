@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import {
-  Layers,
   Store,
   Lock,
   Mail,
@@ -14,6 +13,7 @@ import {
   AlertCircle,
   Users,
 } from 'lucide-react';
+import { LogoMark } from '@/components/ui/Logo';
 
 export default function LoginPage() {
   const { login, switchDemoMerchant, demoMerchants } = useAuth();
@@ -62,9 +62,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#edece4] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="w-12 h-12 rounded-2xl bg-[#16181a] text-[#e0fd53] flex items-center justify-center mx-auto shadow-md">
-          <Layers className="w-6 h-6" />
-        </div>
+        <LogoMark size={56} className="mx-auto shadow-md" />
         <h2 className="mt-4 text-2xl font-black text-[#16181a] tracking-tight">
           Sign In to LocalPulse AI
         </h2>

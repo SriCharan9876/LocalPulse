@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import NeighborhoodCalendar from '@/components/calendar/NeighborhoodCalendar';
 import EventActionPlan from '@/components/actions/EventActionPlan';
+import ProposalModal from '@/components/collab/ProposalModal';
 
 // Dynamically import Leaflet Map to avoid SSR window errors
 const NeighborhoodMap = dynamic(
@@ -52,6 +53,12 @@ export default function NeighborhoodPage() {
   // Occasion whose action plan popup is open
   const [planEvent, setPlanEvent] = useState(null);
 
+  // Bundle proposal popup (opens here; the merchant stays on this page)
+  const [collabPartner, setCollabPartner] = useState(null);
+  const [collabData, setCollabData] = useState(null); // { partners, myProducts }, loaded on first use
+  const [collabLoadingId, setCollabLoadingId] = useState(null);
+  const [collabNotice, setCollabNotice] = useState('');
+
   // Reset Data Modal state
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -79,11 +86,54 @@ export default function NeighborhoodPage() {
     loadData();
   }, [merchant?.merchant_id]);
 
+  // Open the joint-bundle popup for one nearby shop without leaving the map page
+  const openCollab = async (partnerId) => {
+    if (!partnerId) return;
+    setCollabLoadingId(partnerId);
+    try {
+      let data = collabData;
+      if (!data) {
+        const [discoverRes, productsRes] = await Promise.all([
+          api.get('/collaborations/discover'),
+          api.get('/products'),
+        ]);
+        data = { partners: discoverRes.data, myProducts: productsRes.data };
+        setCollabData(data);
+      }
+      const partner = data.partners.find((p) => p.merchant_id === partnerId);
+      if (partner) {
+        setPlanEvent(null); // one popup at a time
+        setCollabPartner(partner);
+      } else {
+        setCollabNotice('This shop is not available for a bundle right now.');
+        setTimeout(() => setCollabNotice(''), 5000);
+      }
+    } catch (err) {
+      console.error('Failed to open bundle popup:', err);
+      alert('Could not load bundle details. Please ensure backend is running.');
+    } finally {
+      setCollabLoadingId(null);
+    }
+  };
+
+  // Map pin popups are plain HTML (Leaflet), so their buttons are caught here
+  useEffect(() => {
+    const onClick = (e) => {
+      const el = e.target.closest?.('[data-collab-partner]');
+      if (!el) return;
+      e.preventDefault();
+      openCollab(el.getAttribute('data-collab-partner'));
+    };
+    document.addEventListener('click', onClick, true); // capture: runs before Leaflet's popup handlers
+    return () => document.removeEventListener('click', onClick, true);
+  });
+
   const handleResetEntireData = async () => {
     setResetting(true);
     try {
       const res = await api.post('/seed/reset');
       setShowResetModal(false);
+      setCollabData(null);
       setResetSuccessNotice('Entire database successfully reset to default demo records with full coordinates and baseline catalogs!');
       setTimeout(() => setResetSuccessNotice(''), 6000);
       await loadData();
@@ -128,6 +178,13 @@ export default function NeighborhoodPage() {
           <span>Reset Entire Data</span>
         </button>
       </div>
+
+      {collabNotice && (
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2.5 animate-in fade-in shadow-2xs font-medium">
+          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+          <span>{collabNotice}</span>
+        </div>
+      )}
 
       {/* Success Notification Banner */}
       {resetSuccessNotice && (
@@ -350,19 +407,25 @@ export default function NeighborhoodPage() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <a
-                        href={`/collaborations?partner=${encodeURIComponent(m.merchant_id)}`}
-                        onClick={(e) => e.stopPropagation()}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCollab(m.merchant_id);
+                        }}
+                        disabled={collabLoadingId === m.merchant_id}
                         title={m.has_bundle ? 'Open the suggested bundle (you review it before sending)' : 'Build a bundle with this shop'}
-                        className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs ${
+                        className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-60 ${
                           isSelected
                             ? 'bg-[#e0fd53] text-[#16181a] hover:bg-[#d6f447]'
                             : 'bg-[#16181a] text-white hover:bg-stone-800'
                         }`}
                       >
-                        <span>{m.has_bundle ? 'Review Bundle' : 'Collaborate'}</span>
+                        <span>
+                          {collabLoadingId === m.merchant_id ? 'Opening…' : m.has_bundle ? 'Review Bundle' : 'Collaborate'}
+                        </span>
                         <ArrowRight className="w-3.5 h-3.5" />
-                      </a>
+                      </button>
                     </div>
                   </div>
                 );
@@ -385,7 +448,21 @@ export default function NeighborhoodPage() {
       </div>
 
       {/* Action plan for a clicked occasion (drafts are applied only on confirm) */}
-      <EventActionPlan event={planEvent} onClose={() => setPlanEvent(null)} />
+      <EventActionPlan event={planEvent} onClose={() => setPlanEvent(null)} onIdea={openCollab} />
+
+      {/* Joint-bundle popup: opens on this page, nothing is sent until "Submit" */}
+      <ProposalModal
+        partner={collabPartner}
+        myProducts={collabData?.myProducts || []}
+        merchant={merchant}
+        source="Local Map"
+        onClose={() => setCollabPartner(null)}
+        onSubmitted={(p) => {
+          setCollabPartner(null);
+          setCollabNotice(`Bundle proposal sent to ${p.business_name}. They'll see it in their Bundle proposals and can accept or decline.`);
+          setTimeout(() => setCollabNotice(''), 7000);
+        }}
+      />
 
       {/* Reset Entire Database Modal */}
       <Modal

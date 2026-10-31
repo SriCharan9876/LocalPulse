@@ -10,12 +10,11 @@ import {
   Sparkles,
   Megaphone,
   ChevronsUpDown,
-  Settings,
   BookOpen,
   LogOut,
-  Layers,
   MapPin,
 } from 'lucide-react';
+import { LogoMark } from '@/components/ui/Logo';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -69,9 +68,7 @@ export default function Sidebar() {
       {/* Brand Header */}
       <div className="h-16 px-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-[#e0fd53] flex items-center justify-center text-[#151719] shadow-sm font-black">
-            <Layers className="w-5 h-5 text-[#151719]" />
-          </div>
+          <LogoMark size={36} />
           <div className="flex items-center gap-1.5">
             <span className="font-bold text-base text-white tracking-tight">
               LocalPulse
@@ -131,15 +128,8 @@ export default function Sidebar() {
 
       </nav>
 
-      {/* Footer Links (Settings, Docs, Sign Out & Bottom User Pill) */}
+      {/* Footer Links (Docs, Sign Out & Bottom User Pill) */}
       <div className="p-3 border-t border-white/5 space-y-1">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-stone-400 hover:text-white hover:bg-white/5 transition-colors"
-        >
-          <Settings className="w-4 h-4 text-stone-500" />
-          <span>Settings</span>
-        </Link>
         <a
           href="https://github.com"
           target="_blank"

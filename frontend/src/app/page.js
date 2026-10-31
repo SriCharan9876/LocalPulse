@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import {
-  Layers,
   ArrowRight,
   TrendingUp,
   Sparkles,
@@ -20,6 +19,7 @@ import {
   ChevronRight,
   Cpu,
 } from 'lucide-react';
+import { LogoMark } from '@/components/ui/Logo';
 
 export default function EntryPage() {
   const { isAuthenticated, demoMerchants, switchDemoMerchant, user } = useAuth();
@@ -39,9 +39,7 @@ export default function EntryPage() {
       {/* Top Floating Glass / Charcoal Navigation */}
       <header className="max-w-7xl mx-auto w-full px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#16181a] flex items-center justify-center text-[#e0fd53] shadow-md shadow-stone-900/10">
-            <Layers className="w-5 h-5" />
-          </div>
+          <LogoMark size={40} className="shadow-md shadow-stone-900/10" />
           <div>
             <span className="font-extrabold text-lg text-[#16181a] tracking-tight flex items-center gap-2">
               LocalPulse
@@ -269,7 +267,7 @@ export default function EntryPage() {
       {/* Footer */}
       <footer className="border-t border-stone-200/80 bg-white/50 backdrop-blur-xs py-6 text-center text-xs text-stone-500 flex flex-col sm:flex-row items-center justify-between px-6 max-w-7xl mx-auto w-full">
         <div className="flex items-center gap-2 font-bold text-[#16181a]">
-          <Layers className="w-4 h-4" />
+          <LogoMark size={18} />
           <span>LocalPulse AI</span>
           <span className="text-stone-400 font-normal">• MSME Observability Design</span>
         </div>

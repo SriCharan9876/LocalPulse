@@ -354,9 +354,8 @@ export default function CampaignsPage() {
                         {[...Array(8)].map((_, i) => (
                           <div
                             key={i}
-                            className={`flex-1 h-3 rounded-full ${
-                              i < filledCapsules ? 'bg-[#16181a]' : 'border border-dashed border-stone-300'
-                            }`}
+                            className={`flex-1 h-3 rounded-full ${i < filledCapsules ? 'bg-[#16181a]' : 'border border-dashed border-stone-300'
+                              }`}
                           />
                         ))}
                       </div>
@@ -383,7 +382,7 @@ export default function CampaignsPage() {
                     <div className="p-3.5 bg-[#f7f8f4] border border-stone-200/80 rounded-2xl">
                       <p className="text-[10px] font-bold text-stone-400 uppercase">Incremental Lift</p>
                       <p className="text-xl font-black text-emerald-700 mt-0.5">
-                        +₹{camp.incremental_revenue_lift.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{camp.incremental_revenue_lift.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </p>
                       <p className="text-[10px] text-stone-400 mt-1">
                         Over baseline: ₹{camp.baseline_expected_revenue.toFixed(0)}

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import {
-  Layers,
   Store,
   User,
   Mail,
@@ -19,6 +18,7 @@ import {
   ShieldCheck,
   Compass,
 } from 'lucide-react';
+import { LogoMark } from '@/components/ui/Logo';
 
 export default function SignupPage() {
   const { signup } = useAuth();
@@ -63,9 +63,7 @@ export default function SignupPage() {
       {/* Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-lg text-center">
         <Link href="/" className="inline-flex items-center gap-2 mb-3 group">
-          <div className="w-12 h-12 rounded-2xl bg-[#16181a] text-[#e0fd53] flex items-center justify-center shadow-md shadow-stone-900/10 group-hover:scale-105 transition-transform">
-            <Layers className="w-6 h-6" />
-          </div>
+          <LogoMark size={56} className="shadow-md shadow-stone-900/10 group-hover:scale-105 transition-transform" />
         </Link>
         <h2 className="text-2xl sm:text-3xl font-black text-[#16181a] tracking-tight">
           Register New Merchant

@@ -10,8 +10,15 @@ import { Loader2, Lightbulb, Info, ArrowRight, BarChart3 } from 'lucide-react';
 /*
  * Popup with concrete actions for one occasion (restock drafts, a small festival offer,
  * partner bundle ideas). Each draft is applied only when the merchant confirms it.
+ * onIdea(partnerId): optional. When given, a partner idea opens the bundle popup on the
+ * current page instead of navigating to the Collaborations page.
  */
-export default function EventActionPlan({ event, onClose }) {
+
+const partnerIdOf = (href = '') => {
+  const m = href.match(/[?&]partner=([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+};
+export default function EventActionPlan({ event, onClose, onIdea }) {
   const [plan, setPlan] = useState(null);
   const [error, setError] = useState('');
 
@@ -87,17 +94,30 @@ export default function EventActionPlan({ event, onClose }) {
             {plan.ideas?.length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Partner ideas</p>
-                {plan.ideas.map((idea, i) => (
-                  <Link
-                    key={i}
-                    href={idea.href}
-                    className="p-2.5 rounded-xl bg-[#f7f8f4] border border-stone-200/80 text-[11px] text-stone-700 flex items-start gap-2 hover:bg-[#e0fd53]/25"
-                  >
-                    <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#16181a]" />
-                    <span className="flex-1">{idea.text}</span>
-                    <ArrowRight className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  </Link>
-                ))}
+                {plan.ideas.map((idea, i) => {
+                  const cls =
+                    'w-full text-left p-2.5 rounded-xl bg-[#f7f8f4] border border-stone-200/80 text-[11px] text-stone-700 flex items-start gap-2 hover:bg-[#e0fd53]/25 cursor-pointer';
+                  const body = (
+                    <>
+                      <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#16181a]" />
+                      <span className="flex-1">{idea.text}</span>
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    </>
+                  );
+                  const partnerId = partnerIdOf(idea.href);
+                  if (onIdea && partnerId) {
+                    return (
+                      <button key={i} type="button" onClick={() => onIdea(partnerId)} className={cls}>
+                        {body}
+                      </button>
+                    );
+                  }
+                  return (
+                    <Link key={i} href={idea.href} className={cls}>
+                      {body}
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </>

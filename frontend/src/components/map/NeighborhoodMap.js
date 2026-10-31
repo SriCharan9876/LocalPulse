@@ -164,7 +164,7 @@ export default function NeighborhoodMap({
                 </div>
               ` : ''}
               <div style="display: flex; gap: 6px; margin-top: 6px;">
-                <a href="/collaborations?partner=${encodeURIComponent(m.merchant_id)}" style="display: inline-block; background: #16181a; color: #fff; text-decoration: none; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">${m.has_bundle ? 'Review Bundle' : 'Propose Bundle'}</a>
+                <a href="#" data-collab-partner="${m.merchant_id}" style="display: inline-block; cursor: pointer; background: #16181a; color: #fff; text-decoration: none; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">${m.has_bundle ? 'Review Bundle' : 'Propose Bundle'}</a>
               </div>
             </div>
           `);
@@ -179,6 +179,11 @@ export default function NeighborhoodMap({
       // Auto-center on merchant if no specific item is currently selected
       if (!selectedMerchantId) {
         map.setView([currLat, currLng], 15, { animate: true });
+      } else {
+        // Markers were just rebuilt, so open the selected shop's popup on the new marker
+        // (otherwise the popup opened by the selection effect disappears with the old marker)
+        const selectedMarker = markersRef.current[`merchant-${selectedMerchantId}`];
+        if (selectedMarker) selectedMarker.openPopup();
       }
     }
 
