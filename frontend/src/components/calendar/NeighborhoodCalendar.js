@@ -19,9 +19,22 @@ export default function NeighborhoodCalendar({
   selectedEventId = null,
   onSelectEvent = null,
 }) {
-  // Calendar base state (Defaulting to November 2026 based on seed events)
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(10); // 0-indexed: 10 = November
+  // Calendar base state (Dynamic based on current date or events)
+  const today = new Date();
+  const [currentYear, setCurrentYear] = useState(() => {
+    if (events && events.length > 0 && events[0].start_date) {
+      const yr = parseInt(events[0].start_date.split('-')[0], 10);
+      if (!isNaN(yr)) return yr;
+    }
+    return today.getFullYear();
+  });
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    if (events && events.length > 0 && events[0].start_date) {
+      const mo = parseInt(events[0].start_date.split('-')[1], 10) - 1;
+      if (!isNaN(mo) && mo >= 0 && mo <= 11) return mo;
+    }
+    return today.getMonth();
+  });
   const [selectedDay, setSelectedDay] = useState(null);
 
   const monthNames = [
@@ -76,10 +89,10 @@ export default function NeighborhoodCalendar({
         <div>
           <h3 className="text-base font-extrabold text-[#16181a] tracking-tight flex items-center gap-2">
             <CalendarIcon className="w-4 h-4 text-[#16181a]" />
-            <span>Retail Demand Calendar</span>
+            <span>All-India Occasions & Festivals</span>
           </h3>
           <p className="text-[11px] text-stone-500 font-medium mt-0.5">
-            Festivals, community markets, and neighborhood footfall drivers
+            Real holidays & cultural observances from Google Calendar All India
           </p>
         </div>
 
@@ -188,14 +201,14 @@ export default function NeighborhoodCalendar({
       {/* Event Cards Stream */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between text-xs font-bold text-stone-500 uppercase tracking-widest px-1">
-          <span>Local Area Events ({displayedEvents.length})</span>
-          <span className="text-[11px] text-stone-400 font-normal">Click event to focus on map</span>
+          <span>Occasions & Festivals ({displayedEvents.length})</span>
+          <span className="text-[11px] text-stone-400 font-normal">Click occasion to view retail prep</span>
         </div>
 
         {displayedEvents.length === 0 ? (
           <div className="p-8 text-center rounded-2xl bg-[#fbfbf9] border border-dashed border-stone-200">
             <CalendarIcon className="w-6 h-6 text-stone-300 mx-auto mb-2" />
-            <p className="text-xs text-stone-500 font-medium">No major retail demand events scheduled for this day.</p>
+            <p className="text-xs text-stone-500 font-medium">No major retail occasions scheduled for this day.</p>
           </div>
         ) : (
           displayedEvents.map((ev) => {
@@ -225,6 +238,17 @@ export default function NeighborhoodCalendar({
                     >
                       {ev.severity} IMPACT
                     </span>
+                    {ev.source && (
+                      <span
+                        className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${
+                          isSelected
+                            ? 'bg-stone-800 text-stone-300 border-stone-700'
+                            : 'bg-stone-50 text-stone-600 border-stone-200/90'
+                        }`}
+                      >
+                        {ev.source.replace(' (100% Free Live)', '').replace(' (Active)', '')}
+                      </span>
+                    )}
                     <span
                       className={`text-xs font-bold ${
                         isSelected ? 'text-stone-300' : 'text-stone-500'
@@ -233,16 +257,6 @@ export default function NeighborhoodCalendar({
                       {ev.start_date === ev.end_date ? ev.start_date : `${ev.start_date} → ${ev.end_date}`}
                     </span>
                   </div>
-
-                  {ev.distance_km !== null && (
-                    <span
-                      className={`text-[11px] font-mono font-bold ${
-                        isSelected ? 'text-[#e0fd53]' : 'text-stone-500'
-                      }`}
-                    >
-                      {ev.distance_km < 1 ? `${Math.round(ev.distance_km * 1000)}m away` : `${ev.distance_km} km away`}
-                    </span>
-                  )}
                 </div>
 
                 <h4

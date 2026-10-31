@@ -9,6 +9,7 @@ from app.schemas.neighborhood import (
     MerchantCoordinates, EventCategoryImpact
 )
 from app.services.collaboration import CATEGORY_SYNERGIES
+from app.services.occasions import get_all_india_occasions
 
 router = APIRouter(prefix="/neighborhood", tags=["Neighborhood Map & Events"])
 
@@ -103,47 +104,20 @@ async def get_neighborhood_events(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
-    Retrieve upcoming neighborhood calendar events with calculated proximity
-    and category demand impacts for the merchant's store.
+    Retrieve real All-India occasions, religious festivals, and neighborhood events
+    with calculated proximity and category demand impacts for the merchant's store.
     """
     curr_lat = float(merchant.get("latitude", 12.920737))
     curr_lng = float(merchant.get("longitude", 77.668710))
+    curr_cat = merchant.get("category", "")
 
-    raw_events = await db.neighborhood_events.find({}).sort("start_date", 1).to_list(length=50)
-
-    events = []
-    for ev in raw_events:
-        coords = ev.get("coordinates", {"lat": 12.9215, "lng": 77.6692})
-        ev_lat = float(coords.get("lat", 12.9215))
-        ev_lng = float(coords.get("lng", 77.6692))
-        dist_km = calculate_haversine(curr_lat, curr_lng, ev_lat, ev_lng)
-
-        impacts = [
-            EventCategoryImpact(
-                category=imp.get("category", ""),
-                multiplier=float(imp.get("multiplier", 1.0)),
-                projected_demand_change_pct=int(imp.get("projected_demand_change_pct", 0)),
-                highlight_products=imp.get("highlight_products", [])
-            )
-            for imp in ev.get("category_impacts", [])
-        ]
-
-        events.append(
-            NeighborhoodEvent(
-                event_id=ev.get("event_id", "ev-gen"),
-                title=ev.get("title", ""),
-                description=ev.get("description", ""),
-                start_date=ev.get("start_date", ""),
-                end_date=ev.get("end_date", ""),
-                location_name=ev.get("location_name", ""),
-                coordinates=MerchantCoordinates(lat=ev_lat, lng=ev_lng),
-                distance_km=dist_km,
-                category_impacts=impacts,
-                recommended_action=ev.get("recommended_action", ""),
-                severity=ev.get("severity", "MEDIUM")
-            )
-        )
-
+    events, _ = await get_all_india_occasions(
+        merchant=merchant,
+        merchant_lat=curr_lat,
+        merchant_lng=curr_lng,
+        merchant_category=curr_cat,
+        db=db
+    )
     return events
 
 @router.get("/summary", response_model=NeighborhoodSummary)
@@ -157,9 +131,17 @@ async def get_neighborhood_summary(
     current_m_id = merchant["merchant_id"]
     curr_lat = float(merchant.get("latitude", 12.920737))
     curr_lng = float(merchant.get("longitude", 77.668710))
+    curr_cat = merchant.get("category", "")
 
     all_merchants = await db.merchants.find({"merchant_id": {"$ne": current_m_id}}).to_list(length=50)
-    events_count = await db.neighborhood_events.count_documents({})
+    events, source_name = await get_all_india_occasions(
+        merchant=None,
+        merchant_lat=curr_lat,
+        merchant_lng=curr_lng,
+        merchant_category=curr_cat,
+        db=db
+    )
+    events_count = len(events)
 
     nearest_partner = None
     min_dist = 9999.0
@@ -178,6 +160,7 @@ async def get_neighborhood_summary(
         current_coordinates=MerchantCoordinates(lat=curr_lat, lng=curr_lng),
         nearby_merchants_count=len(all_merchants),
         upcoming_events_count=events_count,
+        events_source=source_name,
         nearest_partner_name=nearest_partner,
         nearest_partner_distance_km=min_dist if nearest_partner else None,
     )

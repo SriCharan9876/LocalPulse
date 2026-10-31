@@ -23,12 +23,15 @@ class Settings(BaseSettings):
     # Modular LLM Configuration
     LLM_API_KEY: Optional[str] = None
     LLM_PROVIDER: str = "gemini"  # gemini, openai, groq, or custom
-    LLM_MODEL: str = "gemini-2.5-flash"  # Active Gemini model ID
+    LLM_MODEL: str = "gemini-3.8-flash"  # Active Gemini model ID
     LLM_BASE_URL: Optional[str] = None
 
     # Sarvam AI Configuration (Multilingual Indic Voice & Speech-to-Text)
     SARVAM_API_KEY: Optional[str] = None
     SARVAM_STT_MODEL: str = "saaras:v4"  # Latest Indic multi-language model
+
+    # Calendarific API Key (Real All-India Festivals & Occasions: https://calendarific.com)
+    CALENDARIFIC_API_KEY: Optional[str] = None
 
     @property
     def cors_origins(self) -> list[str]:

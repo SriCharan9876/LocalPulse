@@ -33,12 +33,13 @@ class NeighborhoodEvent(BaseModel):
     description: str
     start_date: str
     end_date: str
-    location_name: str
-    coordinates: MerchantCoordinates
+    location_name: Optional[str] = None
+    coordinates: Optional[MerchantCoordinates] = None
     distance_km: Optional[float] = None
     category_impacts: List[EventCategoryImpact] = Field(default_factory=list)
     recommended_action: str
     severity: str = "HIGH"  # HIGH, MEDIUM, LOW
+    source: Optional[str] = "Calendarific All-India API"
 
 class NeighborhoodSummary(BaseModel):
     current_merchant_id: str
@@ -47,5 +48,6 @@ class NeighborhoodSummary(BaseModel):
     current_coordinates: MerchantCoordinates
     nearby_merchants_count: int
     upcoming_events_count: int
+    events_source: Optional[str] = "All-India Live Occasions"
     nearest_partner_name: Optional[str] = None
     nearest_partner_distance_km: Optional[float] = None

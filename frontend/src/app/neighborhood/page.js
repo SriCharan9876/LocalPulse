@@ -102,11 +102,17 @@ export default function NeighborhoodPage() {
     >
       {/* Top Banner and Quick Reset Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-stone-200/90 bg-white text-stone-700 text-xs font-semibold shadow-2xs">
             <Compass className="w-3.5 h-3.5 text-[#16181a]" />
             <span>Local Retail Cluster ({currLat.toFixed(4)}° N, {currLng.toFixed(4)}° E)</span>
           </div>
+          {summary?.events_source && (
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-stone-200/90 bg-[#f7f8f4] text-stone-800 text-xs font-bold shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>{summary.events_source}</span>
+            </div>
+          )}
         </div>
 
         {/* Global Reset Entire Data Button */}
@@ -196,17 +202,17 @@ export default function NeighborhoodPage() {
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-black text-[#e0fd53] tracking-tight">
-                +160%
+                +180%
               </span>
-              <span className="text-xs font-semibold text-stone-300">Peak Demand Spike</span>
+              <span className="text-xs font-semibold text-stone-300">Peak Demand Surge</span>
             </div>
             <p className="text-xs text-stone-300 mt-1">
-              Upcoming: Diwali shopping week, tech payday surges & weekend markets
+              Google Calendar: Festivals, gazetted holidays & cultural observances in India
             </p>
           </div>
           <div className="mt-4 pt-3 border-t border-stone-800 flex items-center justify-between text-xs text-stone-400 font-medium">
-            <span>Top Impact:</span>
-            <span className="font-bold text-[#e0fd53]">Sweets, Grains & Bakery</span>
+            <span>Occasion Demand:</span>
+            <span className="font-bold text-[#e0fd53]">Sweets, Gifting & Staples</span>
           </div>
         </div>
       </div>
@@ -221,10 +227,10 @@ export default function NeighborhoodPage() {
               <div>
                 <h3 className="text-base font-extrabold text-[#16181a] tracking-tight flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#16181a]" />
-                  <span>Interactive Proximity Map</span>
+                  <span>Interactive Store Map</span>
                 </h3>
                 <p className="text-[11px] text-stone-500 font-medium">
-                  Live merchant shop markers & community footfall events
+                  Live merchant shop pins & neighborhood partner network
                 </p>
               </div>
             </div>
@@ -233,10 +239,8 @@ export default function NeighborhoodPage() {
               <NeighborhoodMap
                 currentMerchant={merchant}
                 nearbyMerchants={nearbyMerchants}
-                events={events}
                 selectedMerchantId={selectedMerchantId}
                 onSelectMerchant={(id) => setSelectedMerchantId(id)}
-                selectedEventId={selectedEventId}
               />
             </div>
           </div>
@@ -349,11 +353,7 @@ export default function NeighborhoodPage() {
             events={events}
             selectedEventId={selectedEventId}
             onSelectEvent={(id) => {
-              setSelectedEventId(id);
-              // Smooth scroll map into view if on mobile
-              if (window.innerWidth < 1024) {
-                window.scrollTo({ top: 200, behavior: 'smooth' });
-              }
+              setSelectedEventId((prev) => (prev === id ? null : id));
             }}
           />
         </div>
