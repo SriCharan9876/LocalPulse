@@ -9,7 +9,7 @@ from typing import List, Dict, Any
 COPILOT_TOOLS: List[Dict[str, Any]] = [
     {
         "name": "analyze_product_performance",
-        "description": "Analyze sales velocity, revenue, unit trends, and stock runway for a specific product over the last X days.",
+        "description": "Analyze sales velocity, revenue, unit trends, and stock runway for ONE specific product over a period. For rankings across products use get_top_products.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -17,13 +17,21 @@ COPILOT_TOOLS: List[Dict[str, Any]] = [
                     "type": "string",
                     "description": "Name or keyword of the product in the catalog (e.g. 'Milk', 'Bread', 'Tea')."
                 },
+                "auto_select": {
+                    "type": "string",
+                    "enum": ["top_seller"],
+                    "description": "Use 'top_seller' when the merchant refers to their top/best product without naming it."
+                },
+                "period": {
+                    "type": "string",
+                    "description": "Time period exactly as the merchant said it, e.g. 'today', 'yesterday', 'last 5 days', 'this week', 'last month'. Omit if none was mentioned."
+                },
                 "days": {
                     "type": "integer",
                     "description": "Number of past days to analyze (default is 7 or 30).",
                     "default": 7
                 }
-            },
-            "required": ["product_name"]
+            }
         }
     },
     {
@@ -63,13 +71,18 @@ COPILOT_TOOLS: List[Dict[str, Any]] = [
                     "type": "string",
                     "description": "Name or keyword of the product to adjust."
                 },
+                "auto_select": {
+                    "type": "string",
+                    "enum": ["most_urgent_restock"],
+                    "description": "Use 'most_urgent_restock' when the merchant asks to restock their lowest / most urgent item without naming it."
+                },
                 "quantity": {
                     "type": "integer",
                     "description": "Number of units to add (restock) or deduct (audit adjustment)."
                 },
                 "adjustment_type": {
                     "type": "string",
-                    "enum": ["RESTOCK", "DAMAGE_WRITE_OFF", "AUDIT_CORRECTION"],
+                    "enum": ["RESTOCK", "DAMAGE_LOSS", "AUDIT_CORRECTION"],
                     "description": "Reason for the stock change (default 'RESTOCK').",
                     "default": "RESTOCK"
                 },
@@ -78,7 +91,7 @@ COPILOT_TOOLS: List[Dict[str, Any]] = [
                     "description": "Explanation or context for the adjustment movement."
                 }
             },
-            "required": ["product_name", "quantity"]
+            "required": ["quantity"]
         }
     },
     {
@@ -136,6 +149,11 @@ COPILOT_TOOLS: List[Dict[str, Any]] = [
                     "type": "string",
                     "description": "Target product name or keyword."
                 },
+                "auto_select": {
+                    "type": "string",
+                    "enum": ["best_promo_candidate"],
+                    "description": "Use 'best_promo_candidate' when no product is named; the product with the most surplus stock that can afford the discount is chosen."
+                },
                 "discount_pct": {
                     "type": "number",
                     "description": "Discount percentage to offer (e.g. 5, 10, 15)."
@@ -166,6 +184,65 @@ COPILOT_TOOLS: List[Dict[str, Any]] = [
                 }
             },
             "required": ["campaign_title_or_id"]
+        }
+    },
+    {
+        "name": "get_top_products",
+        "description": "Rank ALL products by units sold, revenue, or profit over a period. Use for: most sold / best sellers / top products / which product sold the most / least sold / slowest / not selling.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "period": {
+                    "type": "string",
+                    "description": "Time period exactly as the merchant said it, e.g. 'today', 'yesterday', 'last 5 days', 'this week', 'last month'. Omit if none was mentioned."
+                },
+                "rank_by": {
+                    "type": "string",
+                    "enum": ["units", "revenue", "profit"],
+                    "description": "What to rank by (default 'units'). Use 'revenue' for money/earnings questions, 'profit' for profit/margin questions."
+                },
+                "order": {
+                    "type": "string",
+                    "enum": ["top", "bottom"],
+                    "description": "'top' for best/most sold, 'bottom' for least sold / slow / not selling (default 'top')."
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "How many products to list (default 5)."
+                }
+            }
+        }
+    },
+    {
+        "name": "get_sales_summary",
+        "description": "Store-wide sales totals for a period: revenue, units, gross profit, daily average, best day, top product, and change vs the previous period. Use for: how much did I sell / revenue yesterday / sales this week / profit last month / how did the store do.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "period": {
+                    "type": "string",
+                    "description": "Time period exactly as the merchant said it, e.g. 'today', 'yesterday', 'last 5 days', 'this week', 'last month'. Omit if none was mentioned."
+                }
+            }
+        }
+    },
+    {
+        "name": "compare_products",
+        "description": "Compare two or more named products side by side (units, revenue, profit, trend, stock) over a period.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "product_names": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Names or keywords of the products to compare (at least two)."
+                },
+                "period": {
+                    "type": "string",
+                    "description": "Time period exactly as the merchant said it, e.g. 'today', 'yesterday', 'last 5 days', 'this week', 'last month'. Omit if none was mentioned."
+                }
+            },
+            "required": ["product_names"]
         }
     },
     {

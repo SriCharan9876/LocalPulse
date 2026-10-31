@@ -33,8 +33,10 @@ class CampaignService:
         # Net campaign profit = Generated Revenue - COGS - Budget Allocated
         net_profit = round(total_revenue - total_cogs - budget, 2)
         
-        # Return on Marketing Spend (ROAS / ROMS %)
-        roms_pct = round(((total_revenue - budget) / budget * 100.0), 2) if budget > 0 else 0.0
+        # Return on Marketing Spend (ROMS %) = net campaign profit / marketing budget.
+        # Uses net profit (after COGS and budget), not revenue - budget: the old formula
+        # ignored cost of goods sold and overstated returns.
+        roms_pct = round((net_profit / budget * 100.0), 2) if budget > 0 else 0.0
 
         # Baseline comparison
         # Baseline revenue expected over campaign duration without promotional stimulus

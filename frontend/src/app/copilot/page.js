@@ -7,6 +7,7 @@ import Badge from '@/components/ui/Badge';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { convertBlobTo16kWav } from '@/lib/audioUtils';
+import ChartOffer from '@/components/copilot/ChartOffer';
 import {
   Sparkles,
   Send,
@@ -229,7 +230,7 @@ function FormattedMessage({ content }) {
             <div key={idx} className="pl-6 text-stone-700 flex items-start gap-1.5 text-[11px] py-0.5">
               <span className="text-[#16181a] font-bold shrink-0">→</span>
               <div className="min-w-0">
-                <InlineText text={trimmed.replace(/^[->➔↳]\s*/, '')} />
+                <InlineText text={trimmed.replace(/^(->|➔|↳)\s*/, '')} />
               </div>
             </div>
           );
@@ -614,6 +615,7 @@ export default function CopilotPage() {
         draft_action: res.data.draft_action || null,
         provider_info: res.data.provider_info || 'LocalPulse Rule-Based Intelligence',
         llm_configured: res.data.llm_configured,
+        chart: res.data.chart || null,
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
@@ -899,6 +901,9 @@ export default function CopilotPage() {
                     ) : (
                       <FormattedMessage content={msg.content} />
                     )}
+
+                    {/* Optional chart (shown only when the merchant asks for it) */}
+                    {!isUser && msg.chart && <ChartOffer chart={msg.chart} />}
 
                     {/* Grounded Evidence Citations */}
                     {msg.evidence && msg.evidence.length > 0 && (

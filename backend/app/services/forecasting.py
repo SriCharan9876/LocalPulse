@@ -1,6 +1,128 @@
+import asyncio
+import logging
+import re
+import time
 from datetime import date, timedelta
 from typing import List, Dict, Optional, Tuple
 from app.schemas.forecast import DailyForecastPoint, ProductForecastResponse
+
+logger = logging.getLogger(__name__)
+
+ALL_CATEGORIES = "all categories"
+
+# Festivals come from the same All-India occasions feed as the Events page
+# (services/occasions.py). Only major festivals (severity HIGH, e.g. Diwali, Eid, Holi)
+# adjust forecasts: the calendar also lists many minor observances, and boosting every
+# one of them would inflate forecasts most days of the year.
+FORECAST_EVENT_SEVERITIES = {"HIGH"}
+# Don't let a slow or unreachable calendar slow down the dashboard / demand / copilot:
+OCCASIONS_TIMEOUT_SECONDS = 3.0
+OCCASIONS_RETRY_AFTER_SECONDS = 600  # after a failure, skip festivals for 10 minutes
+_occasions_failed_at: float = 0.0
+
+# Words too generic to link a festival impact to a product ("Retail Footfall", "Gift Boxes" ...)
+_GENERIC_WORDS = {
+    "and", "the", "retail", "footfall", "festive", "festival", "general", "store", "stores",
+    "item", "items", "product", "products", "daily", "essential", "essentials", "special",
+    "all", "category", "categories", "gifting", "gift", "box", "pack", "mix", "kit",
+    "premium", "pure", "seasonal", "convenience", "packaged", "local",
+}
+
+
+def _stem(word: str) -> str:
+    """Simple singular form: groceries->grocery, sweets->sweet, beverages->beverage."""
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"
+    if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+    return word
+
+
+def _key_words(text: Optional[str]) -> set:
+    return {
+        _stem(w) for w in re.findall(r"[a-z]+", (text or "").lower())
+        if len(w) >= 3 and _stem(w) not in _GENERIC_WORDS
+    }
+
+
+async def load_relevant_events(db, merchant: dict) -> List[dict]:
+    """
+    Major upcoming festivals for forecasting, from the same All-India occasions feed
+    the Events page uses. Load once per request and pass to forecast_product(events=...).
+    Returns [] (no festival adjustment) if the feed is slow or unavailable.
+    """
+    global _occasions_failed_at
+    if time.time() - _occasions_failed_at < OCCASIONS_RETRY_AFTER_SECONDS:
+        return []
+    try:
+        from app.services.occasions import get_all_india_occasions
+        lat = merchant.get("latitude")
+        lng = merchant.get("longitude")
+        kwargs = {"merchant": None, "merchant_category": merchant.get("category", ""), "db": None}
+        if lat is not None and lng is not None:
+            kwargs.update(merchant_lat=float(lat), merchant_lng=float(lng))
+        # merchant=None -> base festival rules only (no per-request Gemini call); the feed is cached
+        events, _source = await asyncio.wait_for(
+            get_all_india_occasions(**kwargs), timeout=OCCASIONS_TIMEOUT_SECONDS
+        )
+    except Exception as e:  # timeout, network error, unexpected data
+        logger.warning(f"Festival feed unavailable for forecasting ({e!r}); forecasting without festivals.")
+        _occasions_failed_at = time.time()
+        return []
+    if not events:
+        _occasions_failed_at = time.time()
+        return []
+
+    today_str = date.today().isoformat()
+    relevant = []
+    for ev in events:
+        d = ev.model_dump() if hasattr(ev, "model_dump") else dict(ev)
+        if (d.get("end_date") or d.get("start_date") or "") < today_str:
+            continue
+        if (d.get("severity") or "").upper() not in FORECAST_EVENT_SEVERITIES:
+            continue
+        relevant.append(d)
+    return relevant
+
+
+def event_multiplier_for_day(
+    target_date: date,
+    product_category: str,
+    merchant_category: Optional[str],
+    events: Optional[List[dict]],
+) -> Tuple[float, Optional[str]]:
+    """
+    Demand multiplier from festivals active on target_date.
+    A festival impact applies to a product when its category shares a key word with the
+    product's or merchant's category ("Dry Fruits & Groceries" ~ "Grocery & Daily Essentials",
+    "Beverages & Dairy" ~ "Dairy"), or when it is "All Categories".
+    Highlighted product names are deliberately NOT matched: single words like "oil" would
+    link Holi's skin-care "Coconut Oil" to cooking oil.
+    Overlapping festivals don't stack: the strongest one is used, to avoid runaway forecasts.
+    """
+    if not events:
+        return 1.0, None
+    day = target_date.strftime("%Y-%m-%d")
+    category_words = _key_words(product_category) | _key_words(merchant_category)
+
+    best_mult, best_title = 1.0, None
+    for ev in events:
+        start = ev.get("start_date") or ""
+        end = ev.get("end_date") or start
+        if not (start <= day <= end):
+            continue
+        for impact in ev.get("category_impacts") or []:
+            cat = (impact.get("category") or "").strip().lower()
+            matches = cat == ALL_CATEGORIES or bool(_key_words(cat) & category_words)
+            if not matches:
+                continue
+            try:
+                mult = float(impact.get("multiplier", 1.0))
+            except (TypeError, ValueError):
+                continue
+            if mult > best_mult:
+                best_mult, best_title = mult, ev.get("title")
+    return best_mult, best_title
 
 class DemandForecastingService:
     """
@@ -13,7 +135,9 @@ class DemandForecastingService:
         self,
         product: dict,
         sales_history: List[dict],
-        horizon_days: int = 7
+        horizon_days: int = 7,
+        events: Optional[List[dict]] = None,
+        merchant_category: Optional[str] = None,
     ) -> ProductForecastResponse:
         """
         Produce a 7-day demand forecast for a single product using a weekday-aware
@@ -75,6 +199,8 @@ class DemandForecastingService:
         today = date.today()
         daily_forecasts: List[DailyForecastPoint] = []
         total_forecasted_units = 0
+        event_days: List[Tuple[str, float, str]] = []  # (day_name, multiplier, event title)
+        baseline_units_no_events = 0.0  # same forecast without event uplift (for replenishment)
 
         # Day names
         day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -103,6 +229,13 @@ class DemandForecastingService:
             # Apply promotional elasticity multiplier if active campaign is running
             pred_float = pred_float * promo_multiplier
 
+            # Apply neighbourhood event uplift (festivals, fairs, match screenings, ...)
+            baseline_units_no_events += max(1.0, pred_float)
+            ev_mult, ev_title = event_multiplier_for_day(target_date, category, merchant_category, events)
+            if ev_mult != 1.0:
+                pred_float = pred_float * ev_mult
+                event_days.append((day_names[target_weekday], ev_mult, ev_title))
+
             predicted_units = max(1, int(round(pred_float)))
             projected_rev = round(predicted_units * effective_selling_price, 2)
             total_forecasted_units += predicted_units
@@ -114,6 +247,8 @@ class DemandForecastingService:
                     predicted_units=predicted_units,
                     projected_revenue=projected_rev,
                     is_weekend=is_weekend,
+                    event_multiplier=round(ev_mult, 2),
+                    event_title=ev_title,
                 )
             )
 
@@ -126,11 +261,22 @@ class DemandForecastingService:
         # Stockout risk is True if current stock will be exhausted before the 7-day horizon or is below reorder threshold
         stockout_risk = (current_stock < total_forecasted_units) or (current_stock <= reorder_threshold)
         
-        # Recommended replenishment units: bring stock to 14 days of demand + safety buffer of reorder threshold
-        target_stock_level = int(round(avg_daily_demand * 14)) + reorder_threshold
+        # Recommended replenishment: stock for 14 days of demand + reorder-threshold buffer.
+        # The forecast window uses the event-adjusted forecast; the days after it use normal
+        # (no-event) demand, so a short festival spike isn't stretched across two weeks.
+        # Without events this equals the original "avg daily demand x 14 + threshold" rule.
+        coverage_days = 14
+        if horizon_days >= coverage_days:
+            demand_to_cover = avg_daily_demand * coverage_days
+        else:
+            normal_daily = baseline_units_no_events / horizon_days if horizon_days > 0 else 0.0
+            demand_to_cover = total_forecasted_units + normal_daily * (coverage_days - horizon_days)
+        target_stock_level = int(round(demand_to_cover)) + reorder_threshold
         replenishment = max(0, target_stock_level - current_stock)
 
-        method_str = "Weekday-Stratified Exponentially Weighted Historical Baseline (7-Day)"
+        method_str = "Weekday-Stratified Weighted Historical Baseline (7-Day)"
+        if event_days:
+            method_str += " + Festival Adjustment"
         if is_promotional:
             explanation = (
                 f"Active promotion ({discount_pct}% off) in effect at ₹{effective_selling_price} (Regular: ₹{selling_price}). "
@@ -142,6 +288,14 @@ class DemandForecastingService:
                 f"Based on {historical_window_days} days of product-level transaction history. "
                 f"Expected 7-day consumption is {total_forecasted_units} {product.get('unit', 'units')}. "
                 f"At current stock of {current_stock}, estimated runway is {days_of_inventory} days."
+            )
+
+        if event_days:
+            titles = sorted({t for _, _, t in event_days if t})
+            peak = max(m for _, m, _ in event_days)
+            explanation += (
+                f" Includes festival uplift on {len(event_days)} day(s) "
+                f"(up to {peak:g}x) from: {', '.join(titles)}."
             )
 
         return ProductForecastResponse(

@@ -9,7 +9,7 @@ from app.schemas.dashboard import (
 )
 from app.schemas.sales import DailySaleRecord
 from app.schemas.forecast import DailyForecastPoint
-from app.services.forecasting import forecasting_service
+from app.services.forecasting import forecasting_service, load_relevant_events
 
 router = APIRouter(prefix="/dashboard", tags=["Merchant Dashboard"])
 
@@ -84,10 +84,14 @@ async def get_dashboard_summary(
     day_forecast_rev: Dict[str, float] = {}
     day_names_map: Dict[str, str] = {}
     product_evaluations = []
+    events = await load_relevant_events(db, merchant)
 
     for p in products:
         p_sales = [s for s in recent_sales if s.get("product_id") == p["product_id"]]
-        fc = forecasting_service.forecast_product(p, p_sales, horizon_days=7)
+        fc = forecasting_service.forecast_product(
+            p, p_sales, horizon_days=7,
+            events=events, merchant_category=merchant.get("category"),
+        )
         curr_stock = int(p.get("current_stock", 0))
         reorder_th = int(p.get("reorder_threshold", 10))
         cost_p = float(p.get("cost_price", 0.0))

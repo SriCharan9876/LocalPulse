@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.db.session import get_database
 from app.api.dependencies import get_current_merchant
-from app.services.forecasting import forecasting_service
+from app.services.forecasting import forecasting_service, load_relevant_events
 from app.schemas.forecast import ProductForecastResponse, BatchForecastSummary
 from app.schemas.sales import ProductSalesHistoryResponse, DailySaleRecord
 
@@ -38,6 +38,7 @@ async def get_forecasts(
             forecasts=[]
         )
 
+    events = await load_relevant_events(db, merchant)
     forecast_results: List[ProductForecastResponse] = []
     total_units = 0
     total_revenue = 0.0
@@ -49,7 +50,10 @@ async def get_forecasts(
             "product_id": p["product_id"]
         }).sort("date", 1).to_list(length=120)
 
-        fc = forecasting_service.forecast_product(p, sales, horizon_days=days)
+        fc = forecasting_service.forecast_product(
+            p, sales, horizon_days=days,
+            events=events, merchant_category=merchant.get("category"),
+        )
         forecast_results.append(fc)
         total_units += fc.total_forecasted_units
         total_revenue += fc.total_projected_revenue

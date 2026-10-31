@@ -15,6 +15,20 @@ class CopilotEvidenceItem(BaseModel):
     value: str
     context: str
 
+class ChartPoint(BaseModel):
+    label: str              # short label shown on the chart, e.g. "Amul Taaza Milk" or "Sat 25"
+    value: float
+    full_label: Optional[str] = None  # full product name / date, shown on hover
+
+class ChartData(BaseModel):
+    """Minimal chart attached to an analytics reply. Shown only when the merchant asks for it."""
+    kind: str = "bars"      # "bars" = horizontal bars (products), "columns" = vertical bars (days)
+    title: str
+    value_label: str        # e.g. "Revenue", "Units sold"
+    value_prefix: str = ""  # "₹" for money
+    points: List[ChartPoint]
+    auto_open: bool = False  # True when the merchant explicitly asked for a chart
+
 class CopilotChatMessage(BaseModel):
     role: str  # "user", "assistant"
     content: str
@@ -50,6 +64,7 @@ class CopilotChatResponse(BaseModel):
     llm_configured: bool
     provider_info: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    chart: Optional[ChartData] = None
 
 class ActionConfirmationRequest(BaseModel):
     action_type: str
@@ -70,6 +85,7 @@ class CopilotMessageResponse(BaseModel):
     draft_action: Optional[DraftAction] = None
     confirmation_message: Optional[str] = None
     provider_info: Optional[str] = None
+    chart: Optional[ChartData] = None
 
 class CopilotHistoryResponse(BaseModel):
     messages: List[CopilotMessageResponse]

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -7,14 +7,25 @@ from app.db.session import get_database
 from app.api.dependencies import get_current_merchant
 from app.services.copilot import copilot_service
 from app.services.sarvam_voice import sarvam_voice_service
+from app.services.forecasting import load_relevant_events
 from app.schemas.copilot import (
     CopilotChatRequest, CopilotChatResponse,
     ActionConfirmationRequest, ActionConfirmationResponse,
     CopilotMessageResponse, CopilotHistoryResponse,
-    VoiceTranscriptionResponse
+    VoiceTranscriptionResponse, ChartData,
 )
 
 router = APIRouter(prefix="/copilot", tags=["AI Business Copilot"])
+
+
+def _history_chart(raw):
+    """Saved chart data -> ChartData (ignored if missing or malformed)."""
+    if not raw:
+        return None
+    try:
+        return ChartData(**raw)
+    except Exception:
+        return None
 
 @router.get("/history", response_model=CopilotHistoryResponse)
 async def get_copilot_history(
@@ -42,6 +53,7 @@ async def get_copilot_history(
                 draft_action=doc.get("draft_action"),
                 confirmation_message=doc.get("confirmation_message"),
                 provider_info=doc.get("provider_info"),
+                chart=_history_chart(doc.get("chart")),
             )
         )
 
@@ -99,11 +111,18 @@ async def chat_with_copilot(
 
     # 3. Retrieve store live state
     products = await db.products.find({"merchant_id": m_id}).to_list(length=100)
-    sales = await db.sales.find({"merchant_id": m_id}).sort("date", -1).to_list(length=300)
+    # Load sales by DATE RANGE, not by record count. The old 300-record cap was shared by all
+    # products, so stores with many products silently got fewer days than asked for.
+    # 200 days covers the longest supported period (90 days) plus the previous period it is compared to.
+    sales_since = (date.today() - timedelta(days=200)).isoformat()
+    sales = await db.sales.find(
+        {"merchant_id": m_id, "date": {"$gte": sales_since}}
+    ).sort("date", -1).to_list(length=None)
     campaigns = await db.campaigns.find({"merchant_id": m_id}).to_list(length=20)
     collaborations = await db.collaborations.find({
         "$or": [{"initiator_merchant_id": m_id}, {"partner_merchant_id": m_id}]
     }).to_list(length=20)
+    events = await load_relevant_events(db, merchant)
 
     # 4. Process chat with memory context
     response = await copilot_service.process_chat(
@@ -114,6 +133,7 @@ async def chat_with_copilot(
         campaigns=campaigns,
         collaborations=collaborations,
         history=history,
+        events=events,
     )
 
     # 5. Persist the assistant's response in database
@@ -129,6 +149,8 @@ async def chat_with_copilot(
         "draft_action": response.draft_action.dict() if response.draft_action else None,
         "confirmation_message": None,
         "provider_info": response.provider_info,
+        # Saved closed: after a reload the chart is offered again, not forced open
+        "chart": ({**response.chart.model_dump(), "auto_open": False} if response.chart else None),
         "created_at": datetime.utcnow(),
     }
     await db.copilot_messages.insert_one(asst_doc)
@@ -154,22 +176,29 @@ async def confirm_copilot_action(
     )
 
     if execution_result.success:
-        # Mark the most recent pending draft action in memory as confirmed
-        await db.copilot_messages.update_one(
+        # Mark the most recent pending draft action in memory as confirmed.
+        # find_one(sort=...) + update by _id instead of update_one(sort=...): the sort
+        # option on update_one needs MongoDB 8.0+ and is not supported by the in-memory
+        # mongomock fallback, where it raised a 500 AFTER the DB write had already happened.
+        pending = await db.copilot_messages.find_one(
             {
                 "merchant_id": m_id,
                 "draft_action.action_type": req.action_type,
                 "draft_action.status": "PENDING_CONFIRMATION"
             },
-            {
-                "$set": {
-                    "draft_action.status": "CONFIRMED",
-                    "confirmation_message": execution_result.message,
-                    "updated_at": datetime.utcnow()
-                }
-            },
-            sort={"created_at": -1}
+            sort=[("created_at", -1)],
         )
+        if pending:
+            await db.copilot_messages.update_one(
+                {"_id": pending["_id"]},
+                {
+                    "$set": {
+                        "draft_action.status": "CONFIRMED",
+                        "confirmation_message": execution_result.message,
+                        "updated_at": datetime.utcnow()
+                    }
+                },
+            )
 
     return execution_result
 

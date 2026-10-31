@@ -7,6 +7,9 @@ class DailyForecastPoint(BaseModel):
     predicted_units: int
     projected_revenue: float
     is_weekend: bool
+    # Neighbourhood event adjustment for this day (1.0 = no event affects this product)
+    event_multiplier: float = 1.0
+    event_title: Optional[str] = None
 
 class ProductForecastResponse(BaseModel):
     product_id: str
