@@ -22,14 +22,8 @@ import {
 } from 'lucide-react';
 
 export default function EntryPage() {
-  const { isAuthenticated, loading, demoMerchants, switchDemoMerchant } = useAuth();
+  const { isAuthenticated, demoMerchants, switchDemoMerchant, user } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && isAuthenticated) {
-      router.push('/dashboard');
-    }
-  }, [loading, isAuthenticated, router]);
 
   const handleQuickDemoLaunch = async (merchantId) => {
     try {
@@ -62,19 +56,31 @@ export default function EntryPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="text-xs font-bold text-stone-600 hover:text-[#16181a] px-4 py-2 rounded-full hover:bg-stone-200/50 transition-all"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/signup"
-            className="px-5 py-2.5 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-bold text-xs transition-all shadow-sm flex items-center gap-1.5 group"
-          >
-            <span>Register Merchant</span>
-            <ArrowRight className="w-3.5 h-3.5 text-[#e0fd53] group-hover:translate-x-0.5 transition-transform" />
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="px-5 py-2.5 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-bold text-xs transition-all shadow-sm flex items-center gap-1.5 group"
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#e0fd53] group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-xs font-bold text-stone-600 hover:text-[#16181a] px-4 py-2 rounded-full hover:bg-stone-200/50 transition-all"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                className="px-5 py-2.5 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-bold text-xs transition-all shadow-sm flex items-center gap-1.5 group"
+              >
+                <span>Register Merchant</span>
+                <ArrowRight className="w-3.5 h-3.5 text-[#e0fd53] group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
