@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import math
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,10 +7,13 @@ from app.db.session import get_database
 from app.api.dependencies import get_current_merchant
 from app.schemas.neighborhood import (
     NearbyMerchant, NeighborhoodEvent, NeighborhoodSummary,
-    MerchantCoordinates, EventCategoryImpact
+    MerchantCoordinates, EventCategoryImpact,
+    EventActionPlanRequest, EventActionPlanResponse,
 )
 from app.services.collaboration import CATEGORY_SYNERGIES
 from app.services.occasions import get_all_india_occasions
+from app.services.collab_intelligence import load_suggestions
+from app.services.event_actions import build_event_action_plan
 
 router = APIRouter(prefix="/neighborhood", tags=["Neighborhood Map & Events"])
 
@@ -53,6 +57,10 @@ async def get_nearby_merchants(
             "current_stock": int(p.get("current_stock", 0)),
         })
 
+    # Same partner intelligence as the Collaborations page, so scores and advice match.
+    # (Gemini wording is reused from its cache when available; the map never waits on it.)
+    suggestions = {s["merchant"]["merchant_id"]: s for s in await load_suggestions(db, merchant, use_ai="cache")}
+
     result = []
     for m in all_merchants:
         m_id = m["merchant_id"]
@@ -62,17 +70,8 @@ async def get_nearby_merchants(
         dist_m = int(dist_km * 1000)
 
         partner_cat = m.get("category", "")
-        key1 = (current_cat, partner_cat)
-        key2 = (partner_cat, current_cat)
-        if key1 in CATEGORY_SYNERGIES:
-            meta = CATEGORY_SYNERGIES[key1]
-        elif key2 in CATEGORY_SYNERGIES:
-            meta = CATEGORY_SYNERGIES[key2]
-        else:
-            meta = {
-                "synergy_type": "Neighborhood Cross-Promotion",
-                "complementary_score": 70,
-            }
+        sug = suggestions.get(m_id)
+        bundle = sug["bundle"] if sug else None
 
         top_prods = prods_by_m.get(m_id, [])[:4]
 
@@ -88,8 +87,10 @@ async def get_nearby_merchants(
                 coordinates=MerchantCoordinates(lat=m_lat, lng=m_lng),
                 distance_km=dist_km,
                 distance_meters=dist_m,
-                synergy_type=meta.get("synergy_type"),
-                synergy_score=meta.get("complementary_score"),
+                synergy_type=sug["theme"] if sug else None,
+                synergy_score=sug["score"] if sug else None,
+                synergy_rationale=(bundle.get("pitch") if bundle else (sug["rationale"] if sug else None)),
+                has_bundle=bool(bundle),
                 top_products=top_prods,
             )
         )
@@ -164,3 +165,61 @@ async def get_neighborhood_summary(
         nearest_partner_name=nearest_partner,
         nearest_partner_distance_km=min_dist if nearest_partner else None,
     )
+
+
+@router.post("/events/action-plan", response_model=EventActionPlanResponse)
+async def get_event_action_plan(
+    req: EventActionPlanRequest,
+    merchant: dict = Depends(get_current_merchant),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Concrete actions for one occasion (restock drafts, a small festival offer, partner
+    bundle ideas). Read-only: each draft is applied only when the merchant confirms it
+    (via /copilot/confirm-action, which re-checks every safety rule).
+    """
+    m_id = merchant["merchant_id"]
+    products = await db.products.find({"merchant_id": m_id}).to_list(length=200)
+    since = (date.today() - timedelta(days=120)).isoformat()
+    sales = await db.sales.find({"merchant_id": m_id, "date": {"$gte": since}}).to_list(length=None)
+    try:
+        partners = await load_suggestions(db, merchant, use_ai="cache")
+    except Exception:
+        partners = []
+    next_occurrence = None
+    has_passed = (req.end_date or req.start_date) < date.today().isoformat()
+    if has_passed:
+        next_occurrence = await _find_next_occurrence(req.title, merchant)
+    plan = build_event_action_plan(req.model_dump(), merchant, products, sales, partners,
+                                   next_occurrence=next_occurrence)
+    return EventActionPlanResponse(**plan)
+
+
+async def _find_next_occurrence(title: str, merchant: dict):
+    """The next upcoming date of the same occasion in the calendar feed (None if not listed).
+    The feed is cached; a slow or unreachable calendar is skipped after 3 seconds."""
+    import asyncio
+    import re as _re
+
+    def norm(t: str) -> str:
+        return _re.sub(r"[^a-z]", "", (t or "").lower())
+
+    try:
+        events, _ = await asyncio.wait_for(
+            get_all_india_occasions(
+                merchant=None,
+                merchant_lat=float(merchant.get("latitude", 12.920737)),
+                merchant_lng=float(merchant.get("longitude", 77.668710)),
+                merchant_category=merchant.get("category", ""),
+                db=None,
+            ),
+            timeout=3.0,
+        )
+    except Exception:
+        return None
+    today = date.today().isoformat()
+    key = norm(title)
+    upcoming = [e for e in events if norm(e.title) == key and e.start_date > today]
+    if not upcoming:
+        return None
+    return min(upcoming, key=lambda e: e.start_date).model_dump()

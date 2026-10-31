@@ -6,6 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.db.session import get_database
 from app.api.dependencies import get_current_merchant
 from app.services.campaign import campaign_service
+from app.services.action_guards import check_discount_vs_cost
 from app.schemas.campaign import (
     CampaignCreate, SimulateRedemptionRequest, CampaignPerformanceResponse
 )
@@ -57,6 +58,16 @@ async def create_campaign(
 ):
     """Create a new promotional campaign."""
     m_id = merchant["merchant_id"]
+
+    # Same safety rule as copilot campaigns: never price a product below its cost.
+    for pid in req.target_product_ids:
+        prod = await db.products.find_one({"merchant_id": m_id, "product_id": pid})
+        if not prod:
+            raise HTTPException(status_code=404, detail=f"Product '{pid}' not found in your catalog.")
+        cost_error = check_discount_vs_cost(prod, req.discount_pct)
+        if cost_error:
+            raise HTTPException(status_code=400, detail=cost_error)
+
     camp_id = f"camp-{uuid.uuid4().hex[:8]}"
     now = datetime.utcnow()
 

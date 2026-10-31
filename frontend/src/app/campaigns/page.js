@@ -5,6 +5,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import StatCard from '@/components/ui/StatCard';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import RecommendationBanner, { takeRecommendationParams } from '@/components/ui/RecommendationBanner';
 import api from '@/lib/api';
 import {
   Megaphone,
@@ -53,6 +54,8 @@ export default function CampaignsPage() {
     target_product_ids: [],
   });
   const [submitting, setSubmitting] = useState(false);
+  // Set when the create popup was opened from a recommendation (Overview, festival plan)
+  const [prefillInfo, setPrefillInfo] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -63,6 +66,32 @@ export default function CampaignsPage() {
       ]);
       setCampaigns(campRes.data);
       setProducts(prodRes.data);
+
+      // Arrived from a recommendation ("Launch Offer" / "Apply Promo"): open the create
+      // popup pre-filled with the recommended product and discount. Nothing is created
+      // until the merchant clicks Launch.
+      const rec = takeRecommendationParams();
+      if (rec && rec.rec === 'campaign') {
+        const target = prodRes.data.find((p) => p.product_id === rec.product_id);
+        if (target) {
+          const shortName = target.name.split(' ').slice(0, 3).join(' ');
+          const days = Math.min(30, Math.max(1, parseInt(rec.days || '7', 10) || 7));
+          const start = rec.start || new Date().toISOString().slice(0, 10);
+          const end = rec.end || new Date(new Date(start).getTime() + (days - 1) * 86400000).toISOString().slice(0, 10);
+          setNewCampaign({
+            title: rec.title || (rec.kind === 'clearance' ? `Clearance Offer: ${shortName}` : `Quick Promo: ${shortName}`),
+            campaign_type: rec.campaign_type || 'Special Discount',
+            discount_pct: parseFloat(rec.discount || '10') || 10,
+            budget_allocated: parseFloat(rec.budget || '1500') || 1500,
+            target_redemptions_goal: 50,
+            start_date: start,
+            end_date: end,
+            target_product_ids: [target.product_id],
+          });
+          setPrefillInfo({ reason: rec.reason || 'Recommendation', source: rec.source || 'Overview', discount: rec.discount, name: target.name });
+          setShowCreateModal(true);
+        }
+      }
     } catch (err) {
       console.error('Failed to load campaigns:', err);
     } finally {
@@ -134,6 +163,7 @@ export default function CampaignsPage() {
         target_product_ids: newCampaign.target_product_ids,
       });
       setShowCreateModal(false);
+      setPrefillInfo(null);
       setNewCampaign({
         title: '',
         campaign_type: 'Special Discount',
@@ -147,7 +177,7 @@ export default function CampaignsPage() {
       loadData();
     } catch (err) {
       console.error(err);
-      alert('Failed to create campaign.');
+      alert(err.response?.data?.detail || 'Failed to create campaign.');
     } finally {
       setSubmitting(false);
     }
@@ -431,10 +461,18 @@ export default function CampaignsPage() {
       {/* New Campaign Modal */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setPrefillInfo(null);
+        }}
         title="Launch New Promotional Campaign"
       >
         <form onSubmit={handleCreateCampaign} className="space-y-4">
+          {prefillInfo && (
+            <RecommendationBanner source={prefillInfo.source} reason={prefillInfo.reason}>
+              Recommended: <strong>{prefillInfo.discount}% off {prefillInfo.name}</strong>, priced to stay above cost.
+            </RecommendationBanner>
+          )}
           <div>
             <label className="block text-xs font-semibold text-stone-700 mb-1">Campaign Title</label>
             <input
@@ -531,7 +569,10 @@ export default function CampaignsPage() {
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setShowCreateModal(false)}
+              onClick={() => {
+                setShowCreateModal(false);
+                setPrefillInfo(null);
+              }}
               className="px-4 py-2 rounded-full border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50"
             >
               Cancel

@@ -10,6 +10,7 @@ from app.schemas.dashboard import (
 from app.schemas.sales import DailySaleRecord
 from app.schemas.forecast import DailyForecastPoint
 from app.services.forecasting import forecasting_service, load_relevant_events
+from app.services.action_guards import max_discount_above_cost
 
 router = APIRouter(prefix="/dashboard", tags=["Merchant Dashboard"])
 
@@ -189,10 +190,17 @@ async def get_dashboard_summary(
         if (not top_restock or p["product_id"] != top_restock["product_id"]) and p["current_stock"] > 0
     ]
     excess_candidates.sort(key=lambda x: x["days_of_stock_left"], reverse=True)
-    top_excess = excess_candidates[0] if excess_candidates else None
+
+    # Recommended discounts must never price a product below cost (they prefill the
+    # campaign popup). Keep ~3 percentage points of margin as a buffer.
+    def safe_discount_cap(p: dict) -> float:
+        return max_discount_above_cost({"selling_price": p["selling_price"], "cost_price": p["cost_price"]}) - 3.0
+
+    top_excess = next((p for p in excess_candidates if safe_discount_cap(p) >= 3.0), None)
+    clearance_pct = min(12.0, safe_discount_cap(top_excess)) if top_excess else 0.0
 
     if top_excess:
-        excess_lift = round(top_excess["selling_price"] * min(top_excess["current_stock"], 20) * 0.88, 2)
+        excess_lift = round(top_excess["selling_price"] * min(top_excess["current_stock"], 20) * (1 - clearance_pct / 100.0), 2)
         top_recommendations.append(
             ActionRecommendationItem(
                 recommendation_id="rec-clearance-discount-02",
@@ -203,9 +211,9 @@ async def get_dashboard_summary(
                 product_name=top_excess["name"],
                 current_stock=top_excess["current_stock"],
                 metric_highlight=f"Surplus stock (~{int(top_excess['days_of_stock_left'])} days supply)",
-                summary=f"Holding {top_excess['current_stock']} units of '{top_excess['name']}' with slow turnover. A 12% clearance discount will accelerate stock velocity.",
+                summary=f"Holding {top_excess['current_stock']} units of '{top_excess['name']}' with slow turnover. A {clearance_pct:g}% clearance discount will accelerate stock velocity.",
                 rationale="Liquidating surplus slow-moving stock releases capital to reinvest into fast-turning daily essentials.",
-                suggested_discount_pct=12.0,
+                suggested_discount_pct=clearance_pct,
                 projected_revenue_lift=excess_lift if excess_lift > 0 else 3200.0,
                 action_type="CREATE_CAMPAIGN",
                 action_url="/campaigns",
@@ -223,13 +231,16 @@ async def get_dashboard_summary(
         min_discount_candidates = [p for p in product_evaluations if not top_restock or p["product_id"] != top_restock["product_id"]]
 
     min_discount_candidates.sort(key=lambda x: x["current_stock"])
-    top_min_discount = min_discount_candidates[0] if min_discount_candidates else None
+    top_min_discount = next((p for p in min_discount_candidates if safe_discount_cap(p) >= 2.0), None)
 
     if top_min_discount:
         sp = top_min_discount["selling_price"]
         cp = top_min_discount["cost_price"]
         margin_pct = ((sp - cp) / sp * 100.0) if sp > 0 else 20.0
         min_discount_val = 5.0 if margin_pct >= 22.0 else (6.0 if margin_pct >= 15.0 else 4.0)
+        min_discount_val = float(int(min(min_discount_val, safe_discount_cap(top_min_discount))))
+        promo_price = sp * (1.0 - min_discount_val / 100.0)
+        margin_after = ((promo_price - cp) / promo_price * 100.0) if promo_price > 0 else 0.0
         min_lift = round(sp * top_min_discount["current_stock"] * (1.0 - min_discount_val / 100.0), 2)
 
         top_recommendations.append(
@@ -242,7 +253,7 @@ async def get_dashboard_summary(
                 product_name=top_min_discount["name"],
                 current_stock=top_min_discount["current_stock"],
                 metric_highlight=f"Min. {int(min_discount_val)}% discount needed ({top_min_discount['current_stock']} units batch)",
-                summary=f"Lowest stock candidate ({top_min_discount['current_stock']} units on hand). A minimal {int(min_discount_val)}% discount triggers buying urgency while keeping {int(margin_pct - min_discount_val)}% gross margin intact.",
+                summary=f"Lowest stock candidate ({top_min_discount['current_stock']} units on hand). A minimal {int(min_discount_val)}% discount triggers buying urgency while keeping {int(margin_after)}% gross margin intact.",
                 rationale="Applying the smallest effective price reduction drives immediate sell-through of the remaining batch without eroding store profitability.",
                 suggested_discount_pct=min_discount_val,
                 projected_revenue_lift=min_lift if min_lift > 0 else 1800.0,

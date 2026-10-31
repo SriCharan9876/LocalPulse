@@ -19,6 +19,8 @@ class NearbyMerchant(BaseModel):
     distance_meters: int
     synergy_type: Optional[str] = None
     synergy_score: Optional[int] = None
+    synergy_rationale: Optional[str] = None  # one-line pitch for the suggested bundle
+    has_bundle: bool = False                  # a cost-safe bundle exists with this shop
     top_products: List[dict] = Field(default_factory=list)
 
 class EventCategoryImpact(BaseModel):
@@ -51,3 +53,33 @@ class NeighborhoodSummary(BaseModel):
     events_source: Optional[str] = "All-India Live Occasions"
     nearest_partner_name: Optional[str] = None
     nearest_partner_distance_km: Optional[float] = None
+
+
+class EventActionPlanRequest(BaseModel):
+    """The occasion the merchant clicked (as returned by /neighborhood/events)."""
+    event_id: Optional[str] = None
+    title: str
+    start_date: str
+    end_date: Optional[str] = None
+    severity: Optional[str] = None
+    category_impacts: List[EventCategoryImpact] = Field(default_factory=list)
+
+class ActionIdea(BaseModel):
+    text: str
+    href: str
+
+class InsightBlock(BaseModel):
+    """A titled list of findings, e.g. "How Diwali went" or "Expected demand next Holi"."""
+    title: str
+    lines: List[str] = Field(default_factory=list)
+
+class EventActionPlanResponse(BaseModel):
+    event_title: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    days_until: Optional[int] = None
+    headline: str
+    notes: List[str] = Field(default_factory=list)
+    drafts: List[dict] = Field(default_factory=list)  # DraftAction-shaped, confirmed via /copilot/confirm-action
+    ideas: List[ActionIdea] = Field(default_factory=list)
+    insights: List[InsightBlock] = Field(default_factory=list)

@@ -543,6 +543,19 @@ export default function DashboardPage() {
               const IconComponent = isRestock ? AlertTriangle : isClearance ? Tag : Percent;
               const actionLabel = isRestock ? 'Restock Item' : isClearance ? 'Launch Offer' : 'Apply Promo';
 
+              // The target page opens its popup pre-filled with these recommended values.
+              // Nothing is applied until the merchant reviews and confirms there.
+              const recParams = new URLSearchParams({
+                rec: isRestock ? 'restock' : 'campaign',
+                product_id: rec.product_id,
+                product_name: rec.product_name,
+                reason: rec.badge_label,
+              });
+              if (isRestock && rec.recommended_quantity) recParams.set('qty', String(rec.recommended_quantity));
+              if (!isRestock && rec.suggested_discount_pct) recParams.set('discount', String(rec.suggested_discount_pct));
+              if (!isRestock) recParams.set('kind', isClearance ? 'clearance' : 'promo');
+              const actionHref = `${rec.action_url || (isRestock ? '/demand' : '/campaigns')}?${recParams.toString()}`;
+
               return (
                 <div
                   key={rec.recommendation_id}
@@ -585,7 +598,7 @@ export default function DashboardPage() {
                     </div>
 
                     <Link
-                      href={rec.action_url || (isRestock ? '/demand' : '/campaigns')}
+                      href={actionHref}
                       className="px-4 py-1.5 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-semibold text-xs transition-all shadow-2xs inline-flex items-center gap-1.5 shrink-0"
                     >
                       <span>{actionLabel}</span>

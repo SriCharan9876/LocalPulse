@@ -6,9 +6,11 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.db.session import get_database
 from app.api.dependencies import get_current_merchant
 from app.services.collaboration import collaboration_service
+from app.services.collab_intelligence import load_suggestions
 from app.schemas.collaboration import (
     DiscoverablePartner, MarginValidationRequest, MarginValidationResponse,
-    CollaborationProposalCreate, CollaborationProposalResponse
+    CollaborationProposalCreate, CollaborationProposalResponse,
+    ComplementaryProductInfo, SuggestedBundle,
 )
 
 router = APIRouter(prefix="/collaborations", tags=["Merchant Collaborations"])
@@ -19,24 +21,46 @@ async def discover_nearby_partners(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
-    Discover fictional nearby merchants with complementary products
-    and calculated synergy ratings.
+    Nearby partners ranked by how well a joint bundle would actually work: customer
+    buy-together link, my surplus stock, the partner's sales pull, price balance, upcoming
+    festivals and distance. Each partner comes with its best cost-safe bundle and the reasons.
+    With an LLM key, Gemini picks among the validated bundles and writes the wording.
     """
-    # Fetch all merchants
-    all_merchants = await db.merchants.find({}, {"password_hash": 0}).to_list(length=50)
+    suggestions = await load_suggestions(db, merchant, use_ai="yes")
 
-    # Fetch products grouped by merchant
-    all_products = await db.products.find({}).to_list(length=300)
-    prods_by_merchant = {}
-    for p in all_products:
-        m_id = p["merchant_id"]
-        prods_by_merchant.setdefault(m_id, []).append(p)
-
-    return collaboration_service.discover_partners(
-        current_merchant=merchant,
-        all_merchants=all_merchants,
-        products_by_merchant=prods_by_merchant
-    )
+    partners = []
+    for s in suggestions:
+        m = s["merchant"]
+        lat, lng = m.get("latitude"), m.get("longitude")
+        partners.append(
+            DiscoverablePartner(
+                merchant_id=m["merchant_id"],
+                business_name=m["business_name"],
+                category=m.get("category", ""),
+                address=m.get("address", ""),
+                distance_km=round(float(s["distance_km"]), 2),
+                latitude=lat,
+                longitude=lng,
+                coordinates=m.get("coordinates") or ({"lat": lat, "lng": lng} if lat is not None and lng is not None else None),
+                synergy_type=s["theme"],
+                synergy_rationale=s["rationale"],
+                complementary_score=s["score"],
+                top_products=[
+                    ComplementaryProductInfo(
+                        product_id=p["product_id"],
+                        name=p["name"],
+                        category=p.get("category", ""),
+                        selling_price=float(p.get("selling_price") or 0),
+                        cost_price=float(p.get("cost_price") or 0),
+                    )
+                    for p in s["ranked_products"][:4]
+                ],
+                suggested_bundle=SuggestedBundle(**s["bundle"]) if s["bundle"] else None,
+                suggestion_reasons=s["reasons"],
+                suggestion_source=s["source"] if s["bundle"] else None,
+            )
+        )
+    return partners
 
 @router.post("/validate-margins", response_model=MarginValidationResponse)
 async def validate_bundle_margins(

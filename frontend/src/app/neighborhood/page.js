@@ -23,6 +23,7 @@ import {
   Compass
 } from 'lucide-react';
 import NeighborhoodCalendar from '@/components/calendar/NeighborhoodCalendar';
+import EventActionPlan from '@/components/actions/EventActionPlan';
 
 // Dynamically import Leaflet Map to avoid SSR window errors
 const NeighborhoodMap = dynamic(
@@ -48,6 +49,8 @@ export default function NeighborhoodPage() {
   // Selection states
   const [selectedMerchantId, setSelectedMerchantId] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  // Occasion whose action plan popup is open
+  const [planEvent, setPlanEvent] = useState(null);
 
   // Reset Data Modal state
   const [showResetModal, setShowResetModal] = useState(false);
@@ -257,9 +260,18 @@ export default function NeighborhoodPage() {
                   Ordered by exact street walking distance from your shop
                 </p>
               </div>
-              <span className="text-xs font-mono font-bold text-stone-400">
-                {nearbyMerchants.length} stores
-              </span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-xs font-mono font-bold text-stone-400">
+                  {nearbyMerchants.length} stores
+                </span>
+                {/* Collaborations left the sidebar; proposals stay one click away here */}
+                <a
+                  href="/collaborations"
+                  className="text-[11px] font-bold text-[#16181a] hover:underline inline-flex items-center gap-1"
+                >
+                  Bundle proposals <ArrowRight className="w-3 h-3" />
+                </a>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -313,7 +325,7 @@ export default function NeighborhoodPage() {
                         {m.address}
                       </p>
 
-                      {m.synergy_score && (
+                      {m.synergy_score && m.has_bundle && (
                         <div className="pt-1 flex items-center gap-1.5 text-[11px] font-medium">
                           <Sparkles
                             className={`w-3 h-3 ${
@@ -325,18 +337,30 @@ export default function NeighborhoodPage() {
                           </span>
                         </div>
                       )}
+                      {m.has_bundle && m.synergy_rationale && (
+                        <p className={`text-[11px] leading-snug ${isSelected ? 'text-stone-300' : 'text-stone-500'}`}>
+                          {m.synergy_rationale}
+                        </p>
+                      )}
+                      {!m.has_bundle && (
+                        <p className={`text-[11px] leading-snug ${isSelected ? 'text-stone-400' : 'text-stone-400'}`}>
+                          No natural product pairing with your shop right now.
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
                       <a
-                        href="/collaborations"
+                        href={`/collaborations?partner=${encodeURIComponent(m.merchant_id)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        title={m.has_bundle ? 'Open the suggested bundle (you review it before sending)' : 'Build a bundle with this shop'}
                         className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs ${
                           isSelected
                             ? 'bg-[#e0fd53] text-[#16181a] hover:bg-[#d6f447]'
                             : 'bg-[#16181a] text-white hover:bg-stone-800'
                         }`}
                       >
-                        <span>Collaborate</span>
+                        <span>{m.has_bundle ? 'Review Bundle' : 'Collaborate'}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </a>
                     </div>
@@ -355,9 +379,13 @@ export default function NeighborhoodPage() {
             onSelectEvent={(id) => {
               setSelectedEventId((prev) => (prev === id ? null : id));
             }}
+            onPlanEvent={(ev) => setPlanEvent(ev)}
           />
         </div>
       </div>
+
+      {/* Action plan for a clicked occasion (drafts are applied only on confirm) */}
+      <EventActionPlan event={planEvent} onClose={() => setPlanEvent(null)} />
 
       {/* Reset Entire Database Modal */}
       <Modal

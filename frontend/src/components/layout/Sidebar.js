@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   TrendingUp,
   Sparkles,
-  Handshake,
   Megaphone,
   ChevronsUpDown,
   Settings,
@@ -55,14 +54,6 @@ export default function Sidebar() {
     },
   ];
 
-  const GOVERN_ITEMS = [
-    {
-      name: 'Collaborations',
-      href: '/collaborations',
-      icon: Handshake,
-      badge: '1',
-    },
-  ];
 
   const initials = merchant?.business_name
     ? merchant.business_name
@@ -138,49 +129,6 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* GOVERN SECTION */}
-        <div>
-          <div className="px-3 pb-1.5 text-[10px] font-bold text-stone-500 uppercase tracking-widest">
-            Govern
-          </div>
-          <div className="space-y-1">
-            {GOVERN_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs md:text-sm font-semibold transition-all ${
-                    isActive
-                      ? 'bg-[#e0fd53] text-[#151719] shadow-sm font-bold'
-                      : 'text-stone-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon
-                      className={`w-4 h-4 ${
-                        isActive ? 'text-[#151719]' : 'text-stone-400'
-                      }`}
-                    />
-                    <span>{item.name}</span>
-                  </div>
-                  {item.badge && (
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold min-w-5 text-center ${
-                        isActive
-                          ? 'bg-[#151719] text-[#e0fd53]'
-                          : 'bg-[#25282d] text-stone-300 border border-white/5'
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
       </nav>
 
       {/* Footer Links (Settings, Docs, Sign Out & Bottom User Pill) */}

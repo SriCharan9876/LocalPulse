@@ -158,13 +158,13 @@ export default function NeighborhoodMap({
               </div>
               <h4 style="font-size: 13px; font-weight: 800; color: #16181a; margin: 0 0 2px 0;">${m.business_name}</h4>
               <p style="font-size: 10.5px; color: #666; margin: 0 0 6px 0;">${m.address}</p>
-              ${m.synergy_score ? `
+              ${m.synergy_score && m.has_bundle ? `
                 <div style="background: #f7f9f2; border: 1px solid #e2e8d8; padding: 4px 6px; border-radius: 8px; margin-bottom: 6px; font-size: 10px; color: #333;">
                   <strong>${m.synergy_score}% Synergy:</strong> ${m.synergy_type || 'Neighborhood Partner'}
                 </div>
               ` : ''}
               <div style="display: flex; gap: 6px; margin-top: 6px;">
-                <a href="/collaborations" style="display: inline-block; background: #16181a; color: #fff; text-decoration: none; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">Propose Bundle</a>
+                <a href="/collaborations?partner=${encodeURIComponent(m.merchant_id)}" style="display: inline-block; background: #16181a; color: #fff; text-decoration: none; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">${m.has_bundle ? 'Review Bundle' : 'Propose Bundle'}</a>
               </div>
             </div>
           `);

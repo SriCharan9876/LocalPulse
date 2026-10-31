@@ -9,6 +9,24 @@ class ComplementaryProductInfo(BaseModel):
     selling_price: float
     cost_price: float
 
+class SuggestedBundle(BaseModel):
+    """Best bundle with this partner: products, cost-safe discounts and the reasons."""
+    bundle_name: str
+    pitch: str
+    theme: str
+    initiator_product_id: str
+    initiator_product_name: str
+    initiator_discount_pct: float
+    initiator_margin_pct: float
+    partner_product_id: str
+    partner_product_name: str
+    partner_discount_pct: float
+    partner_margin_pct: float
+    original_bundle_price: float
+    discounted_bundle_price: float
+    effective_bundle_discount_pct: float
+    festival: Optional[str] = None
+
 class DiscoverablePartner(BaseModel):
     merchant_id: str
     business_name: str
@@ -22,6 +40,9 @@ class DiscoverablePartner(BaseModel):
     synergy_rationale: str
     complementary_score: int  # 1-100
     top_products: List[ComplementaryProductInfo]
+    suggested_bundle: Optional[SuggestedBundle] = None
+    suggestion_reasons: List[str] = Field(default_factory=list)
+    suggestion_source: Optional[str] = None  # "Gemini-assisted" or "LocalPulse rules"
 
 class MarginValidationRequest(BaseModel):
     initiator_product_id: str
@@ -29,7 +50,8 @@ class MarginValidationRequest(BaseModel):
     partner_merchant_id: str
     partner_product_id: str
     partner_discount_pct: float = Field(..., ge=0, le=50)
-    bundle_name: str
+    # Optional: the Collaborations page checks margins live before a name is final
+    bundle_name: str = "Joint Bundle"
 
 class MarginValidationResponse(BaseModel):
     bundle_name: str

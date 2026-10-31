@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import RecommendationBanner from '@/components/ui/RecommendationBanner';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import {
@@ -43,6 +44,9 @@ export default function CollaborationsPage() {
     bundle_description: '',
   });
 
+  // Set when the proposal popup was pre-filled with the suggested bundle
+  const [prefillInfo, setPrefillInfo] = useState(null);
+
   // Live Margin Validation state
   const [validationResult, setValidationResult] = useState(null);
   const [validating, setValidating] = useState(false);
@@ -60,11 +64,27 @@ export default function CollaborationsPage() {
       setProposals(proposalsRes.data);
       setMyProducts(prodsRes.data);
 
-      if (prodsRes.data.length > 0 && !proposalForm.initiator_product_id) {
-        setProposalForm((prev) => ({
-          ...prev,
-          initiator_product_id: prodsRes.data[0].product_id,
-        }));
+      if (prodsRes.data.length > 0) {
+        // Default only when nothing is chosen yet (checked on the latest state, so a
+        // pre-filled suggested bundle is never overwritten when data reloads)
+        setProposalForm((prev) =>
+          prev.initiator_product_id ? prev : { ...prev, initiator_product_id: prodsRes.data[0].product_id }
+        );
+      }
+
+      // Arrived from the Local Map ("Collaborate" on a nearby shop): open that partner's
+      // proposal pre-filled with the suggested bundle. Nothing is sent until "Submit".
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const partnerId = params.get('partner');
+        if (partnerId) {
+          window.history.replaceState(null, '', window.location.pathname);
+          const target = partnersRes.data.find((p) => p.merchant_id === partnerId);
+          if (target) {
+            setActiveTab('partners');
+            openProposalModal(target, prodsRes.data, 'Local Map');
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to load collaborations data:', err);
@@ -77,17 +97,35 @@ export default function CollaborationsPage() {
     loadData();
   }, []);
 
-  const openProposalModal = (partner) => {
+  const openProposalModal = (partner, productsList = myProducts, from = null) => {
     setSelectedPartner(partner);
-    const pProdId = partner.top_products?.[0]?.product_id || '';
-    setProposalForm({
-      initiator_product_id: myProducts[0]?.product_id || '',
-      initiator_discount_pct: 10,
-      partner_product_id: pProdId,
-      partner_discount_pct: 10,
-      bundle_name: `${merchant?.business_name} & ${partner.business_name} Combo`,
-      bundle_description: `Cross-promoted neighborhood bundle offering exclusive discounts on complementary items.`,
-    });
+    const b = partner.suggested_bundle;
+    if (b) {
+      // Pre-fill the suggested bundle (products + cost-safe discounts); the merchant can edit
+      setProposalForm({
+        initiator_product_id: b.initiator_product_id,
+        initiator_discount_pct: b.initiator_discount_pct,
+        partner_product_id: b.partner_product_id,
+        partner_discount_pct: b.partner_discount_pct,
+        bundle_name: b.bundle_name,
+        bundle_description: b.pitch,
+      });
+      setPrefillInfo({
+        source: from ? `${from} · ${partner.suggestion_source || 'LocalPulse'}` : partner.suggestion_source || 'LocalPulse',
+        reason: b.theme,
+        summary: `${b.initiator_discount_pct}% off your ${b.initiator_product_name} + ${b.partner_discount_pct}% off their ${b.partner_product_name}: ₹${Math.round(b.discounted_bundle_price).toLocaleString('en-IN')} instead of ₹${Math.round(b.original_bundle_price).toLocaleString('en-IN')}.`,
+      });
+    } else {
+      setProposalForm({
+        initiator_product_id: productsList[0]?.product_id || '',
+        initiator_discount_pct: 10,
+        partner_product_id: partner.top_products?.[0]?.product_id || '',
+        partner_discount_pct: 10,
+        bundle_name: `${merchant?.business_name} & ${partner.business_name} Combo`,
+        bundle_description: `Cross-promoted neighborhood bundle offering exclusive discounts on complementary items.`,
+      });
+      setPrefillInfo(null);
+    }
     setValidationResult(null);
     setShowCreateModal(true);
   };
@@ -105,6 +143,7 @@ export default function CollaborationsPage() {
         initiator_discount_pct: parseFloat(proposalForm.initiator_discount_pct),
         partner_product_id: proposalForm.partner_product_id,
         partner_discount_pct: parseFloat(proposalForm.partner_discount_pct),
+        bundle_name: proposalForm.bundle_name || 'Joint Bundle',
       });
       setValidationResult(res.data);
     } catch (err) {
@@ -144,6 +183,7 @@ export default function CollaborationsPage() {
         bundle_description: proposalForm.bundle_description,
       });
       setShowCreateModal(false);
+      setPrefillInfo(null);
       loadData();
     } catch (err) {
       console.error(err);
@@ -360,9 +400,15 @@ export default function CollaborationsPage() {
                     <h3 className="font-bold text-[#16181a] text-sm">{partner.business_name}</h3>
                     <p className="text-xs text-stone-500 font-semibold">{partner.category}</p>
                   </div>
-                  <div className="px-2.5 py-0.5 rounded-full bg-[#e0fd53] text-[#16181a] text-[10px] font-black">
-                    {partner.complementary_score}% Synergy
-                  </div>
+                  {partner.suggested_bundle ? (
+                    <div className="px-2.5 py-0.5 rounded-full bg-[#e0fd53] text-[#16181a] text-[10px] font-black shrink-0">
+                      {partner.complementary_score}% Synergy
+                    </div>
+                  ) : (
+                    <div className="px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-500 text-[10px] font-bold shrink-0">
+                      No natural match
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-1 text-[11px] text-stone-500 mt-2">
@@ -371,8 +417,33 @@ export default function CollaborationsPage() {
                 </div>
 
                 <div className="mt-3 p-2.5 rounded-xl bg-white border border-stone-200/80">
-                  <p className="text-[10px] font-bold text-stone-400 uppercase">{partner.synergy_type}</p>
-                  <p className="text-[11px] text-stone-700 mt-0.5 leading-relaxed">{partner.synergy_rationale}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-bold text-stone-400 uppercase">{partner.synergy_type}</p>
+                    {partner.suggestion_source && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#f7f8f4] border border-stone-200 text-stone-500 shrink-0">
+                        {partner.suggestion_source}
+                      </span>
+                    )}
+                  </div>
+                  {partner.suggested_bundle ? (
+                    <>
+                      <p className="text-[11.5px] text-[#16181a] font-semibold mt-1 leading-snug">
+                        {partner.suggested_bundle.initiator_product_name} ({partner.suggested_bundle.initiator_discount_pct}% off)
+                        {' + '}
+                        {partner.suggested_bundle.partner_product_name} ({partner.suggested_bundle.partner_discount_pct}% off)
+                      </p>
+                      <ul className="mt-1.5 space-y-1">
+                        {(partner.suggestion_reasons || []).slice(0, 4).map((r, i) => (
+                          <li key={i} className="text-[10.5px] text-stone-600 leading-snug flex gap-1.5">
+                            <span className="text-[#16181a] shrink-0">•</span>
+                            <span>{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-stone-700 mt-0.5 leading-relaxed">{partner.synergy_rationale}</p>
+                  )}
                 </div>
 
                 <div className="mt-3">
@@ -392,7 +463,7 @@ export default function CollaborationsPage() {
                   onClick={() => openProposalModal(partner)}
                   className="w-full py-2.5 px-3 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
                 >
-                  <span>Build Joint Bundle</span>
+                  <span>{partner.suggested_bundle ? 'Review Suggested Bundle' : 'Build Joint Bundle'}</span>
                   <ArrowUpRight className="w-3.5 h-3.5 text-[#e0fd53]" />
                 </button>
               </div>
@@ -404,11 +475,19 @@ export default function CollaborationsPage() {
       {/* Proposal & Margin Validator Modal */}
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setPrefillInfo(null);
+        }}
         title={selectedPartner ? `Construct Joint Bundle with ${selectedPartner.business_name}` : 'Construct Bundle'}
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleCreateProposal} className="space-y-4">
+          {prefillInfo && (
+            <RecommendationBanner source={prefillInfo.source} reason={prefillInfo.reason}>
+              {prefillInfo.summary} Your partner still has to approve it.
+            </RecommendationBanner>
+          )}
           <div>
             <label className="block text-xs font-semibold text-stone-700 mb-1">Bundle Name</label>
             <input
@@ -531,7 +610,10 @@ export default function CollaborationsPage() {
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setShowCreateModal(false)}
+              onClick={() => {
+                setShowCreateModal(false);
+                setPrefillInfo(null);
+              }}
               className="px-4 py-2 rounded-full border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50"
             >
               Cancel

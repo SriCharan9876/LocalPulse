@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
+import RecommendationBanner, { takeRecommendationParams } from '@/components/ui/RecommendationBanner';
 import api from '@/lib/api';
 import {
   Package,
@@ -65,6 +66,8 @@ export default function DemandPage() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  // Set when the restock popup was opened from an Overview recommendation
+  const [prefillInfo, setPrefillInfo] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -80,6 +83,24 @@ export default function DemandPage() {
       if (prodRes.data.length > 0 && !selectedProduct) {
         setSelectedProduct(prodRes.data[0]);
         loadSalesHistory(prodRes.data[0].product_id);
+      }
+
+      // Arrived from an Overview recommendation ("Restock Item"): open the restock popup
+      // pre-filled with the recommended quantity. Nothing changes until the merchant confirms.
+      const rec = takeRecommendationParams();
+      if (rec && rec.rec === 'restock') {
+        const target = prodRes.data.find((p) => p.product_id === rec.product_id);
+        if (target) {
+          setSelectedProduct(target);
+          loadSalesHistory(target.product_id);
+          setAdjustment({
+            adjustment_type: 'RESTOCK',
+            quantity: Math.max(1, parseInt(rec.qty || '10', 10) || 10),
+            notes: `Recommended on Overview (${rec.reason || 'Restock Priority'})`,
+          });
+          setPrefillInfo({ reason: rec.reason || 'Restock Priority', qty: rec.qty });
+          setShowAdjustModal(true);
+        }
       }
     } catch (err) {
       console.error('Failed to load demand data:', err);
@@ -162,6 +183,7 @@ export default function DemandPage() {
         notes: adjustment.notes,
       });
       setShowAdjustModal(false);
+      setPrefillInfo(null);
       setAdjustment({ adjustment_type: 'RESTOCK', quantity: 10, notes: '' });
       loadData();
       loadSalesHistory(selectedProduct.product_id);
@@ -587,10 +609,18 @@ export default function DemandPage() {
       {/* Audited Inventory Adjustment Modal */}
       <Modal
         isOpen={showAdjustModal}
-        onClose={() => setShowAdjustModal(false)}
+        onClose={() => {
+          setShowAdjustModal(false);
+          setPrefillInfo(null);
+        }}
         title={selectedProduct ? `Adjust Stock: ${selectedProduct.name}` : 'Adjust Inventory'}
       >
         <form onSubmit={handleAdjustInventory} className="space-y-4">
+          {prefillInfo && (
+            <RecommendationBanner source="Overview" reason={prefillInfo.reason}>
+              Recommended restock: <strong>+{prefillInfo.qty} units</strong> to cover the next 2 weeks of forecast demand plus a safety buffer.
+            </RecommendationBanner>
+          )}
           <div className="p-3 bg-[#f7f8f4] rounded-2xl text-xs text-stone-700 border border-stone-200/70">
             <p>Current On-Hand Stock: <strong>{selectedProduct?.current_stock} {selectedProduct?.unit}</strong></p>
           </div>
@@ -636,7 +666,10 @@ export default function DemandPage() {
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setShowAdjustModal(false)}
+              onClick={() => {
+                setShowAdjustModal(false);
+                setPrefillInfo(null);
+              }}
               className="px-4 py-2 rounded-full border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50"
             >
               Cancel

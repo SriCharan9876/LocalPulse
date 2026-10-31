@@ -18,6 +18,7 @@ export default function NeighborhoodCalendar({
   events = [],
   selectedEventId = null,
   onSelectEvent = null,
+  onPlanEvent = null,
 }) {
   // Calendar base state (Dynamic based on current date or events)
   const today = new Date();
@@ -310,6 +311,24 @@ export default function NeighborhoodCalendar({
                     <span>{ev.recommended_action}</span>
                   </div>
                 </div>
+
+                {/* Concrete, confirmable actions for this occasion */}
+                {onPlanEvent && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPlanEvent(ev);
+                    }}
+                    className={`mt-2.5 w-full py-2 rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#e0fd53] text-[#16181a] hover:bg-[#d6f447]'
+                        : 'bg-[#16181a] text-white hover:bg-stone-800'
+                    }`}
+                  >
+                    Get action plan →
+                  </button>
+                )}
               </div>
             );
           })

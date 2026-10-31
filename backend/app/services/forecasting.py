@@ -38,9 +38,17 @@ def _stem(word: str) -> str:
     return word
 
 
+# Two-word terms that mean something different from their parts
+# ("Dry Fruits" are nuts like almonds and cashews, not fresh fruit)
+_COMPOUND_TERMS = [(re.compile(r"\bdry\s+fruits?\b"), "dryfruit")]
+
+
 def _key_words(text: Optional[str]) -> set:
+    t = (text or "").lower()
+    for pattern, token in _COMPOUND_TERMS:
+        t = pattern.sub(token, t)
     return {
-        _stem(w) for w in re.findall(r"[a-z]+", (text or "").lower())
+        _stem(w) for w in re.findall(r"[a-z]+", t)
         if len(w) >= 3 and _stem(w) not in _GENERIC_WORDS
     }
 
