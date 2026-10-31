@@ -11,9 +11,9 @@ MERCHANTS_DATA = [
         "category": "Grocery & Daily Essentials",
         "address": "Shop 14, 12th Main Road, HAL 2nd Stage, Indiranagar, Bengaluru",
         "phone": "+91 98450 12345",
-        "latitude": 12.9702,
-        "longitude": 77.6428,
-        "coordinates": {"lat": 12.9702, "lng": 77.6428},
+        "latitude": 12.920737,
+        "longitude": 77.668710,
+        "coordinates": {"lat": 12.920737, "lng": 77.668710},
         "default_password": "password123",
         "products": [
             {
@@ -92,9 +92,9 @@ MERCHANTS_DATA = [
         "category": "Cafe & Bakery",
         "address": "Shop 4, 100ft Road, Indiranagar, Bengaluru",
         "phone": "+91 98451 23456",
-        "latitude": 12.9734,
-        "longitude": 77.6406,
-        "coordinates": {"lat": 12.9734, "lng": 77.6406},
+        "latitude": 12.923120,
+        "longitude": 77.666950,
+        "coordinates": {"lat": 12.923120, "lng": 77.666950},
         "default_password": "password123",
         "products": [
             {
@@ -151,9 +151,9 @@ MERCHANTS_DATA = [
         "category": "Fresh Fruits & Vegetables",
         "address": "Plot 88, CMH Road, Indiranagar, Bengaluru",
         "phone": "+91 98452 34567",
-        "latitude": 12.9782,
-        "longitude": 77.6385,
-        "coordinates": {"lat": 12.9782, "lng": 77.6385},
+        "latitude": 12.926850,
+        "longitude": 77.665320,
+        "coordinates": {"lat": 12.926850, "lng": 77.665320},
         "default_password": "password123",
         "products": [
             {
@@ -199,9 +199,9 @@ MERCHANTS_DATA = [
         "category": "Fashion & Textiles",
         "address": "Building 5, 12th Main, Indiranagar, Bengaluru",
         "phone": "+91 98453 45678",
-        "latitude": 12.9718,
-        "longitude": 77.6432,
-        "coordinates": {"lat": 12.9718, "lng": 77.6432},
+        "latitude": 12.922180,
+        "longitude": 77.670550,
+        "coordinates": {"lat": 12.922180, "lng": 77.670550},
         "default_password": "password123",
         "products": [
             {
@@ -236,9 +236,9 @@ MERCHANTS_DATA = [
         "category": "Health & Wellness",
         "address": "Shop 21, 6th Cross, Indiranagar, Bengaluru",
         "phone": "+91 98454 56789",
-        "latitude": 12.9689,
-        "longitude": 77.6395,
-        "coordinates": {"lat": 12.9689, "lng": 77.6395},
+        "latitude": 12.918950,
+        "longitude": 77.666820,
+        "coordinates": {"lat": 12.918950, "lng": 77.666820},
         "default_password": "password123",
         "products": [
             {
@@ -273,9 +273,9 @@ MERCHANTS_DATA = [
         "category": "Traditional Sweets & Snacks",
         "address": "Ground Floor, 80ft Road, Indiranagar, Bengaluru",
         "phone": "+91 98455 67890",
-        "latitude": 12.9751,
-        "longitude": 77.6465,
-        "coordinates": {"lat": 12.9751, "lng": 77.6465},
+        "latitude": 12.924890,
+        "longitude": 77.671950,
+        "coordinates": {"lat": 12.924890, "lng": 77.671950},
         "default_password": "password123",
         "products": [
             {
@@ -338,8 +338,8 @@ async def seed_database(db, force: bool = False):
         hashed_pwd = get_password_hash(m_data["default_password"])
         now_dt = datetime.utcnow()
 
-        lat = m_data.get("latitude", 12.9716)
-        lng = m_data.get("longitude", 77.6412)
+        lat = m_data.get("latitude", 12.920737)
+        lng = m_data.get("longitude", 77.668710)
         merchant_doc = {
             "merchant_id": m_id,
             "business_name": m_data["business_name"],
@@ -535,11 +535,11 @@ async def seed_database(db, force: bool = False):
         {
             "event_id": "event-001-diwali",
             "title": "Diwali Festival Shopping & Gifting Rush",
-            "description": "Peak festive season shopping across Indiranagar 100ft & CMH Road. Residents purchasing dry fruits, sweets, premium teas, and home essentials.",
+            "description": "Peak festive season shopping across Sarjapur / Bellandur corridor. Residents purchasing dry fruits, sweets, premium teas, and home essentials.",
             "start_date": (today + timedelta(days=1)).strftime("%Y-%m-%d"),
             "end_date": (today + timedelta(days=5)).strftime("%Y-%m-%d"),
-            "location_name": "Indiranagar 100ft & CMH Rd Retail Corridor",
-            "coordinates": {"lat": 12.9730, "lng": 77.6410},
+            "location_name": "Bellandur-Sarjapur Main Road Retail Corridor",
+            "coordinates": {"lat": 12.921500, "lng": 77.669200},
             "category_impacts": [
                 {"category": "Traditional Sweets", "multiplier": 2.6, "projected_demand_change_pct": 160, "highlight_products": ["Kaju Katli", "Spicy Mixture"]},
                 {"category": "Beverages", "multiplier": 1.9, "projected_demand_change_pct": 90, "highlight_products": ["Red Label Tea", "Malabar Chai"]},
@@ -554,8 +554,8 @@ async def seed_database(db, force: bool = False):
             "description": "Monthly tech worker payroll credit cycle driving high discretionary evening footfall to local cafes, apparel boutiques, and gourmet grocery stores.",
             "start_date": (today + timedelta(days=3)).strftime("%Y-%m-%d"),
             "end_date": (today + timedelta(days=5)).strftime("%Y-%m-%d"),
-            "location_name": "100ft Road Lifestyle & Dining District",
-            "coordinates": {"lat": 12.9735, "lng": 77.6405},
+            "location_name": "EcoSpace & Outer Ring Rd Tech District",
+            "coordinates": {"lat": 12.923800, "lng": 77.667500},
             "category_impacts": [
                 {"category": "Cafe & Bakery", "multiplier": 1.95, "projected_demand_change_pct": 95, "highlight_products": ["Artisan Sourdough", "Teacake Slices"]},
                 {"category": "Apparel", "multiplier": 1.8, "projected_demand_change_pct": 80, "highlight_products": ["Khadi Kurtas", "Ikat Dupattas"]},
@@ -567,11 +567,11 @@ async def seed_database(db, force: bool = False):
         {
             "event_id": "event-003-farmers",
             "title": "Weekend Organic Farmers & Artisan Market",
-            "description": "Bi-weekly open-air market drawing over 2,500 health-conscious Indiranagar families for farm-fresh produce and artisan culinary items.",
+            "description": "Bi-weekly open-air market drawing over 2,500 health-conscious families for farm-fresh produce and artisan culinary items.",
             "start_date": (today + timedelta(days=7)).strftime("%Y-%m-%d"),
             "end_date": (today + timedelta(days=8)).strftime("%Y-%m-%d"),
-            "location_name": "Defence Colony Community Grounds, Indiranagar",
-            "coordinates": {"lat": 12.9760, "lng": 77.6420},
+            "location_name": "Bellandur Green Grounds & Lake Promenade",
+            "coordinates": {"lat": 12.925500, "lng": 77.666000},
             "category_impacts": [
                 {"category": "Fresh Fruits", "multiplier": 2.1, "projected_demand_change_pct": 110, "highlight_products": ["Hass Avocados", "Himachal Apples"]},
                 {"category": "Organic Vegetables", "multiplier": 2.0, "projected_demand_change_pct": 100, "highlight_products": ["Hydroponic Salad Greens"]},
@@ -583,11 +583,11 @@ async def seed_database(db, force: bool = False):
         {
             "event_id": "event-004-langar",
             "title": "Guru Nanak Jayanti Community Langar Drive",
-            "description": "Massive community kitchen meal distribution at Ulsoor & Indiranagar Gurudwaras requiring bulk staples procurement.",
+            "description": "Massive community kitchen meal distribution requiring bulk staples procurement.",
             "start_date": (today + timedelta(days=15)).strftime("%Y-%m-%d"),
             "end_date": (today + timedelta(days=15)).strftime("%Y-%m-%d"),
-            "location_name": "Indiranagar Gurudwara Corridor",
-            "coordinates": {"lat": 12.9755, "lng": 77.6320},
+            "location_name": "Community Hall & Gurudwara Center",
+            "coordinates": {"lat": 12.919200, "lng": 77.671500},
             "category_impacts": [
                 {"category": "Flour & Grains", "multiplier": 2.3, "projected_demand_change_pct": 130, "highlight_products": ["Chakki Atta", "Basmati Rice"]},
                 {"category": "Edible Oils", "multiplier": 2.1, "projected_demand_change_pct": 110, "highlight_products": ["Sunflower Oil 1L"]},
@@ -602,8 +602,8 @@ async def seed_database(db, force: bool = False):
             "description": "High-attendance weekend sporting broadcast screening bringing sports fans and family groups to local neighborhood lounges.",
             "start_date": (today + timedelta(days=20)).strftime("%Y-%m-%d"),
             "end_date": (today + timedelta(days=21)).strftime("%Y-%m-%d"),
-            "location_name": "Indiranagar Club & 12th Main Lounges",
-            "coordinates": {"lat": 12.9695, "lng": 77.6440},
+            "location_name": "Bellandur Sports Arena & Lounges",
+            "coordinates": {"lat": 12.922800, "lng": 77.671000},
             "category_impacts": [
                 {"category": "Savories", "multiplier": 2.25, "projected_demand_change_pct": 125, "highlight_products": ["Spicy Mixture", "Cookie Boxes"]},
                 {"category": "Beverages", "multiplier": 2.15, "projected_demand_change_pct": 115, "highlight_products": ["Chai Packs", "Cold Drinks"]},
@@ -617,8 +617,8 @@ async def seed_database(db, force: bool = False):
             "description": "Community holistic wellness exhibition featuring certified herbalists, organic dietary specialists, and preventative health coaches.",
             "start_date": (today + timedelta(days=23)).strftime("%Y-%m-%d"),
             "end_date": (today + timedelta(days=24)).strftime("%Y-%m-%d"),
-            "location_name": "HAL 2nd Stage Recreation Grounds",
-            "coordinates": {"lat": 12.9705, "lng": 77.6415},
+            "location_name": "Kaikondrahalli Lake Recreation Grounds",
+            "coordinates": {"lat": 12.917800, "lng": 77.668200},
             "category_impacts": [
                 {"category": "Ayurveda", "multiplier": 2.4, "projected_demand_change_pct": 140, "highlight_products": ["Amla Chyawanprash"]},
                 {"category": "Organic Wellness", "multiplier": 2.2, "projected_demand_change_pct": 120, "highlight_products": ["Cold-Pressed Virgin Coconut Oil"]},
@@ -628,12 +628,12 @@ async def seed_database(db, force: bool = False):
         },
         {
             "event_id": "event-007-carnival",
-            "title": "Indiranagar RWA Annual Street Carnival",
-            "description": "Car-free pedestrian boulevard festival promoting small business shopping, street musicians, and neighborhood cross-store redemption vouchers.",
+            "title": "Local MSME & Street Food Carnival",
+            "description": "Pedestrian festival promoting small business shopping, street musicians, and neighborhood cross-store redemption vouchers.",
             "start_date": (today + timedelta(days=28)).strftime("%Y-%m-%d"),
             "end_date": (today + timedelta(days=30)).strftime("%Y-%m-%d"),
-            "location_name": "12th Main Pedestrian Boulevard",
-            "coordinates": {"lat": 12.9715, "lng": 77.6430},
+            "location_name": "Central Retail Boulevard",
+            "coordinates": {"lat": 12.921200, "lng": 77.668500},
             "category_impacts": [
                 {"category": "All Categories", "multiplier": 1.85, "projected_demand_change_pct": 85, "highlight_products": ["All Catalog Products"]},
             ],

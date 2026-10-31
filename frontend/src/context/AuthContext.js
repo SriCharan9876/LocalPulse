@@ -18,6 +18,18 @@ export function AuthProvider({ children }) {
     if (storedToken && storedMerchant) {
       setToken(storedToken);
       setMerchant(storedMerchant);
+
+      // Refresh latest profile & coordinates from backend to keep in sync with database re-seeds
+      api.get('/auth/me')
+        .then((res) => {
+          if (res.data) {
+            setMerchant(res.data);
+            setAuthSession(storedToken, res.data);
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not refresh /auth/me:', err);
+        });
     }
     setLoading(false);
 

@@ -21,7 +21,7 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div
         className={`w-full ${maxWidth} bg-white rounded-[28px] shadow-2xl border border-stone-200/90 overflow-hidden transform animate-in zoom-in-95 duration-150`}
         onClick={(e) => e.stopPropagation()}

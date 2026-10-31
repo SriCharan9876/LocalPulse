@@ -33,8 +33,8 @@ async def get_nearby_merchants(
     Computes exact real-world distance in km and meters, along with category synergies.
     """
     current_m_id = merchant["merchant_id"]
-    curr_lat = float(merchant.get("latitude", 12.9716))
-    curr_lng = float(merchant.get("longitude", 77.6412))
+    curr_lat = float(merchant.get("latitude", 12.920737))
+    curr_lng = float(merchant.get("longitude", 77.668710))
     current_cat = merchant.get("category", "")
 
     all_merchants = await db.merchants.find({"merchant_id": {"$ne": current_m_id}}, {"password_hash": 0}).to_list(length=50)
@@ -55,8 +55,8 @@ async def get_nearby_merchants(
     result = []
     for m in all_merchants:
         m_id = m["merchant_id"]
-        m_lat = float(m.get("latitude", 12.9716))
-        m_lng = float(m.get("longitude", 77.6412))
+        m_lat = float(m.get("latitude", 12.920737))
+        m_lng = float(m.get("longitude", 77.668710))
         dist_km = calculate_haversine(curr_lat, curr_lng, m_lat, m_lng)
         dist_m = int(dist_km * 1000)
 
@@ -106,16 +106,16 @@ async def get_neighborhood_events(
     Retrieve upcoming neighborhood calendar events with calculated proximity
     and category demand impacts for the merchant's store.
     """
-    curr_lat = float(merchant.get("latitude", 12.9716))
-    curr_lng = float(merchant.get("longitude", 77.6412))
+    curr_lat = float(merchant.get("latitude", 12.920737))
+    curr_lng = float(merchant.get("longitude", 77.668710))
 
     raw_events = await db.neighborhood_events.find({}).sort("start_date", 1).to_list(length=50)
 
     events = []
     for ev in raw_events:
-        coords = ev.get("coordinates", {"lat": 12.9730, "lng": 77.6410})
-        ev_lat = float(coords.get("lat", 12.9730))
-        ev_lng = float(coords.get("lng", 77.6410))
+        coords = ev.get("coordinates", {"lat": 12.9215, "lng": 77.6692})
+        ev_lat = float(coords.get("lat", 12.9215))
+        ev_lng = float(coords.get("lng", 77.6692))
         dist_km = calculate_haversine(curr_lat, curr_lng, ev_lat, ev_lng)
 
         impacts = [
@@ -155,8 +155,8 @@ async def get_neighborhood_summary(
     High-level summary of the merchant's spatial footprint and community calendar status.
     """
     current_m_id = merchant["merchant_id"]
-    curr_lat = float(merchant.get("latitude", 12.9716))
-    curr_lng = float(merchant.get("longitude", 77.6412))
+    curr_lat = float(merchant.get("latitude", 12.920737))
+    curr_lng = float(merchant.get("longitude", 77.668710))
 
     all_merchants = await db.merchants.find({"merchant_id": {"$ne": current_m_id}}).to_list(length=50)
     events_count = await db.neighborhood_events.count_documents({})
@@ -164,8 +164,8 @@ async def get_neighborhood_summary(
     nearest_partner = None
     min_dist = 9999.0
     for m in all_merchants:
-        m_lat = float(m.get("latitude", 12.9716))
-        m_lng = float(m.get("longitude", 77.6412))
+        m_lat = float(m.get("latitude", 12.920737))
+        m_lng = float(m.get("longitude", 77.668710))
         d = calculate_haversine(curr_lat, curr_lng, m_lat, m_lng)
         if d < min_dist:
             min_dist = d

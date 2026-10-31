@@ -28,7 +28,7 @@ export default function NeighborhoodMap({
   const [filterType, setFilterType] = useState('all'); // all, merchants, events
   const [mapReady, setMapReady] = useState(false);
 
-  // Initialize Leaflet Map
+  // Initialize Leaflet Map with Standard OpenStreetMap
   useEffect(() => {
     let isMounted = true;
 
@@ -40,8 +40,8 @@ export default function NeighborhoodMap({
 
       if (!isMounted || !mapContainerRef.current) return;
 
-      const centerLat = currentMerchant?.latitude || currentMerchant?.coordinates?.lat || 12.9716;
-      const centerLng = currentMerchant?.longitude || currentMerchant?.coordinates?.lng || 77.6412;
+      const centerLat = currentMerchant?.latitude || currentMerchant?.coordinates?.lat || 12.920737;
+      const centerLng = currentMerchant?.longitude || currentMerchant?.coordinates?.lng || 77.668710;
 
       const map = L.map(mapContainerRef.current, {
         center: [centerLat, centerLng],
@@ -49,10 +49,9 @@ export default function NeighborhoodMap({
         zoomControl: false,
       });
 
-      // Sleek, clean OpenStreetMap tiles
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        subdomains: 'abcd',
+      // Standard OpenStreetMap Tile Layer (100% Free, No API Key Required)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
       }).addTo(map);
 
@@ -92,8 +91,8 @@ export default function NeighborhoodMap({
       });
       markersRef.current = {};
 
-      const currLat = currentMerchant?.latitude || currentMerchant?.coordinates?.lat || 12.9716;
-      const currLng = currentMerchant?.longitude || currentMerchant?.coordinates?.lng || 77.6412;
+      const currLat = currentMerchant?.latitude || currentMerchant?.coordinates?.lat || 12.920737;
+      const currLng = currentMerchant?.longitude || currentMerchant?.coordinates?.lng || 77.668710;
 
       // 1. Current Merchant Marker (Prominent Dark Charcoal with Pulse Ring)
       const currentIcon = L.divIcon({
@@ -237,6 +236,11 @@ export default function NeighborhoodMap({
           markersRef.current[`event-${ev.event_id}`] = marker;
         });
       }
+
+      // Auto-center on merchant if no specific item is currently selected
+      if (!selectedMerchantId && !selectedEventId) {
+        map.setView([currLat, currLng], 15, { animate: true });
+      }
     }
 
     updateMarkers();
@@ -270,8 +274,8 @@ export default function NeighborhoodMap({
 
   const handleCenterOnMe = () => {
     if (!mapInstanceRef.current) return;
-    const lat = currentMerchant?.latitude || 12.9716;
-    const lng = currentMerchant?.longitude || 77.6412;
+    const lat = currentMerchant?.latitude || 12.920737;
+    const lng = currentMerchant?.longitude || 77.668710;
     mapInstanceRef.current.setView([lat, lng], 15, { animate: true });
     const marker = markersRef.current['current'];
     if (marker) marker.openPopup();
@@ -280,7 +284,7 @@ export default function NeighborhoodMap({
   return (
     <div className="relative w-full h-full min-h-[460px] rounded-[28px] overflow-hidden border border-stone-200/90 shadow-sm bg-stone-100 flex flex-col">
       {/* Floating Map Controls Toolbar */}
-      <div className="absolute top-3 left-3 z-[1000] flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-stone-200/90 shadow-sm">
+      <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-stone-200/90 shadow-sm">
         <button
           onClick={() => setFilterType('all')}
           className={`px-3 py-1 rounded-xl text-[11px] font-semibold transition-all cursor-pointer ${
@@ -316,7 +320,7 @@ export default function NeighborhoodMap({
       </div>
 
       {/* Recenter My Store Button */}
-      <div className="absolute top-3 right-3 z-[1000]">
+      <div className="absolute top-3 right-3 z-10">
         <button
           onClick={handleCenterOnMe}
           className="px-3.5 py-1.5 bg-[#16181a] hover:bg-stone-800 text-white rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer border border-stone-700"

@@ -92,8 +92,8 @@ export default function NeighborhoodPage() {
     }
   };
 
-  const currLat = merchant?.latitude || summary?.current_coordinates?.lat || 12.9702;
-  const currLng = merchant?.longitude || summary?.current_coordinates?.lng || 77.6428;
+  const currLat = merchant?.latitude || summary?.current_coordinates?.lat || 12.920737;
+  const currLng = merchant?.longitude || summary?.current_coordinates?.lng || 77.668710;
 
   return (
     <AppLayout
@@ -105,7 +105,7 @@ export default function NeighborhoodPage() {
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-stone-200/90 bg-white text-stone-700 text-xs font-semibold shadow-2xs">
             <Compass className="w-3.5 h-3.5 text-[#16181a]" />
-            <span>Indiranagar Retail Cluster ({currLat.toFixed(4)}° N, {currLng.toFixed(4)}° E)</span>
+            <span>Local Retail Cluster ({currLat.toFixed(4)}° N, {currLng.toFixed(4)}° E)</span>
           </div>
         </div>
 

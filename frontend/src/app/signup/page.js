@@ -16,6 +16,8 @@ import {
   ArrowRight,
   Loader2,
   AlertCircle,
+  ShieldCheck,
+  Compass,
 } from 'lucide-react';
 
 export default function SignupPage() {
@@ -57,36 +59,56 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-blue-500/20">
-          <Layers className="w-7 h-7" />
-        </div>
-        <h2 className="mt-4 text-2xl font-extrabold text-slate-900 tracking-tight">
+    <div className="min-h-screen bg-[#edece4] text-[#16181a] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 selection:bg-[#e0fd53] selection:text-[#16181a]">
+      {/* Header */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-lg text-center">
+        <Link href="/" className="inline-flex items-center gap-2 mb-3 group">
+          <div className="w-12 h-12 rounded-2xl bg-[#16181a] text-[#e0fd53] flex items-center justify-center shadow-md shadow-stone-900/10 group-hover:scale-105 transition-transform">
+            <Layers className="w-6 h-6" />
+          </div>
+        </Link>
+        <h2 className="text-2xl sm:text-3xl font-black text-[#16181a] tracking-tight">
           Register New Merchant
         </h2>
-        <p className="mt-1 text-xs text-slate-500">
-          Join LocalPulse AI to unlock demand forecasting and collaborative growth
+        <p className="mt-1 text-xs sm:text-sm text-stone-500 font-medium">
+          Unlock 7-day demand forecasting, Indic voice copilot, and proximity collaboration
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg">
-        <div className="bg-white py-8 px-6 shadow-xl shadow-slate-200/50 rounded-3xl border border-slate-200/80 sm:px-10">
+      {/* Main Registration Card */}
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl">
+        <div className="bg-white py-8 px-6 shadow-[0_4px_30px_rgba(20,24,20,0.06)] rounded-[32px] border border-stone-200/90 sm:px-10">
+          
+          {/* Quick Notice about Geolocation Clustering */}
+          <div className="mb-6 p-4 rounded-2xl bg-[#f7f8f4] border border-stone-200/80 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#edece4] text-[#16181a] flex items-center justify-center shrink-0 mt-0.5">
+              <Compass className="w-4 h-4 text-[#16181a]" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#16181a]">
+                Automatic Retail Cluster GPS Pinning
+              </p>
+              <p className="text-[11px] text-stone-500 mt-0.5 leading-relaxed font-medium">
+                Registered stores are assigned real coordinates in the active retail cluster (Bellandur/Sarjapur cluster, Bengaluru) to instantly participate in proximity maps and collaborative co-promotions.
+              </p>
+            </div>
+          </div>
+
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2 text-rose-700 text-xs">
+            <div className="mb-5 p-3.5 rounded-2xl bg-[#fbe8e4] border border-[#f3c5bd] flex items-start gap-2.5 text-[#a43b27] text-xs">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{error}</span>
+              <span className="font-medium">{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Business / Store Name
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Store / Business Name
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                     <Store className="w-4 h-4" />
                   </div>
                   <input
@@ -95,18 +117,18 @@ export default function SignupPage() {
                     required
                     value={formData.business_name}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-hidden focus:border-[#16181a] shadow-2xs font-medium"
                     placeholder="e.g. Apex Supermarket"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Owner / Manager Name
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Owner / Proprietor Name
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                     <User className="w-4 h-4" />
                   </div>
                   <input
@@ -115,7 +137,7 @@ export default function SignupPage() {
                     required
                     value={formData.owner_name}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-hidden focus:border-[#16181a] shadow-2xs font-medium"
                     placeholder="e.g. Rahul Verma"
                   />
                 </div>
@@ -123,18 +145,18 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-bold text-stone-700 mb-1">
                 Store Category
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                   <Tag className="w-4 h-4" />
                 </div>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-hidden focus:border-[#16181a] bg-white shadow-2xs font-medium"
                 >
                   <option value="Grocery & Daily Essentials">Grocery & Daily Essentials</option>
                   <option value="Cafe & Bakery">Cafe & Bakery</option>
@@ -148,31 +170,31 @@ export default function SignupPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Phone Number
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Contact Phone Number
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                     <Phone className="w-4 h-4" />
                   </div>
                   <input
-                    type="text"
+                    type="tel"
                     name="phone"
                     required
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-hidden focus:border-[#16181a] shadow-2xs font-medium"
                     placeholder="+91 98765 43210"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Store Address
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Street Address / Area
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                     <MapPin className="w-4 h-4" />
                   </div>
                   <input
@@ -181,19 +203,19 @@ export default function SignupPage() {
                     required
                     value={formData.address}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                    placeholder="Street, City, Pincode"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-hidden focus:border-[#16181a] shadow-2xs font-medium"
+                    placeholder="12th Main, Sarjapur Rd, Bengaluru"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Email Address
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                Merchant Login Email
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -202,18 +224,18 @@ export default function SignupPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                  placeholder="contact@store.com"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-hidden focus:border-[#16181a] shadow-2xs font-medium"
+                  placeholder="owner@yourstore.in"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Password (min 6 characters)
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                Account Password (min 6 characters)
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -223,7 +245,7 @@ export default function SignupPage() {
                   minLength={6}
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-hidden focus:border-[#16181a] shadow-2xs font-medium"
                   placeholder="••••••••"
                 />
               </div>
@@ -232,30 +254,35 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-4 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-md shadow-blue-500/20 disabled:opacity-50"
+              className="w-full mt-4 py-3 px-4 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Registering...</span>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#e0fd53]" />
+                  <span>Registering Merchant Store...</span>
                 </>
               ) : (
                 <>
-                  <span>Create Merchant Account</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Create Merchant Workspace</span>
+                  <ArrowRight className="w-4 h-4 text-[#e0fd53]" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-xs text-slate-500">
-              Already registered?{' '}
-              <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">
-                Sign in to existing account
-              </Link>
-            </p>
+          <div className="mt-6 pt-5 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
+            <span>Already have an account?</span>
+            <Link href="/login" className="font-extrabold text-[#16181a] hover:underline flex items-center gap-1">
+              <span>Sign in to workspace</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#16181a]" />
+            </Link>
           </div>
+        </div>
+
+        {/* Security and Protocol Assurance */}
+        <div className="mt-6 flex items-center justify-center gap-2 text-stone-500 text-[11px] font-medium">
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <span>Stateless JWT Auth • Encrypted Passwords • Paytm Build for India Hackathon</span>
         </div>
       </div>
     </div>
