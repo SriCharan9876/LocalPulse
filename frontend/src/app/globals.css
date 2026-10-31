@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --background: #edece4;
+  --foreground: #16181a;
+  --surface: #ffffff;
+  --surface-muted: #f6f6f1;
+  --lime-accent: #e0fd53;
+  --charcoal: #16181a;
+  --charcoal-hover: #22262a;
+  --stone-border: #e2e4dc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-lime-accent: var(--lime-accent);
+  --color-charcoal: var(--charcoal);
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+* {
+  border-color: rgba(226, 228, 220, 0.85);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom subtle scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd0c4;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a4aaa0;
+}
+
+/* Segmented Capsule Indicators from Dribbble shot */
+.capsule-segment {
+  width: 14px;
+  height: 28px;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
