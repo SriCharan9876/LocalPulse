@@ -126,91 +126,7 @@ graph TB
 
 ---
 
-## 2. Domain Architecture & Core Subsystems
-
-### A. Weekday-Aware Demand Forecasting Engine
-*File: [`backend/app/services/forecasting.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/forecasting.py)*
-- **Algorithmic Strategy:** Stratified historical moving averages that distinguish weekend surges (Saturday/Sunday multiplier of 1.4x) from standard weekday trading baselines.
-- **Stockout Runway Formulation:**
-  $$\text{Daily Burn Rate} = \frac{\sum_{i=1}^{7} \text{Projected Units}_i}{7}$$
-  $$\text{Runway Days} = \frac{\text{Current Stock}}{\text{Daily Burn Rate}}$$
-- **Outputs:** 7-day projected unit volumes, expected daily store receipts, runway days remaining, stockout risk severity (`HIGH`, `MEDIUM`, `HEALTHY`), and algorithmic replenishment batch sizes.
-
-### B. Deterministic Margin Protection Engine (12% Invariant)
-*File: [`backend/app/services/collaboration.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/collaboration.py)*
-- **The 12% Invariant:** Local retailers frequently suffer from discount-driven margin cannibalization. LocalPulse strictly enforces that **no multi-merchant bundle can be submitted if either merchant's post-discount margin drops below 12%**.
-  $$\text{Discounted Selling Price} = \text{Original Selling Price} \times (1 - \text{Discount Rate})$$
-  $$\text{Gross Margin \%} = \frac{\text{Discounted Selling Price} - \text{Cost Price}}{\text{Discounted Selling Price}} \times 100$$
-- **Pre-Flight Validation:** If an initiator attempts to discount an item too aggressively, the real-time validator rejects the bundle and reports the exact economic shortfall before submission.
-
-### C. Live All-India Occasions & Google Calendar Demand Engine
-*File: [`backend/app/services/occasions.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/occasions.py)*
-- **Continuous National Calendar Feed:** Automatically consumes Google Calendar's live All-India public iCal feed (`en.indian#holiday@group.v.calendar.google.com`). It tracks national public holidays, regional festivals (Diwali, Holi, Pongal, Eid, Dussehra, Ganesh Chaturthi, Raksha Bandhan, Onam), and seasonal observances with zero manual data entry and zero API key requirements.
-- **Real-Catalog Gemini Grounding:** Occasion advice is dynamically customized by Google Gemini 3.8 Flash using the merchant's actual 15 top products. It predicts category demand surges (+110% to +180%) and generates store-specific inventory tips and Paytm Soundbox checkout preparation rules (e.g. water-protective wrapping for Soundbox during Holi, volume maximization for Diwali evening rushes, pre-packing ₹100/₹200 sweet boxes for swift QR scanning).
-- **Two-Tier Caching:** Responses are cached in-memory (12-hour TTL) and persisted in MongoDB (`merchant_occasion_insights`, 24-hour TTL) so overview pages and maps load instantaneously (<10ms).
-- **Decoupled Map & Calendar:** Calendar occasions act as neighborhood demand catalysts displayed on the interactive calendar, while the spatial map is cleanly dedicated to physical merchant storefront pins.
-
-### D. Event Action Planning & Safe Draft Execution Engine
-*Files: [`backend/app/services/event_actions.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/event_actions.py), [`frontend/src/components/actions/EventActionPlan.js`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/frontend/src/components/actions/EventActionPlan.js), [`frontend/src/components/actions/ActionDraftCard.js`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/frontend/src/components/actions/ActionDraftCard.js)*
-- **Automated Opportunity Sizing:** When a merchant inspects an occasion (e.g. Diwali on 8 Nov), LocalPulse analyzes the store's 120-day historical sales, current stock levels, and forecasted festival uplift to produce an actionable game plan:
-  1. **`RESTOCK_INVENTORY` Drafts:** Accurately sizes reorder batches for affected items to ensure adequate coverage through the festival days plus a safe replenishment buffer.
-  2. **`CREATE_CAMPAIGN` Festival Offer Drafts:** Prices small, tasteful promotional offers (capped at 8% max discount for festivals) that strictly stay above wholesale cost.
-  3. **Partner Bundle Collaboration Ideas:** Surfaces synergistic pairings with neighbouring partner stores.
-  4. **Historical & Timing Insights:** Compares past festival occurrences (revenue uplift, units moved) and alerts the merchant if it is too early or the optimal ordering window (e.g. 3 days before).
-- **Audited Confirmation Pattern:** The action plan is strictly read-only. Proposed restocks and offers render as structured draft cards requiring an explicit click on **Confirm Action**, which dispatches to `POST /api/copilot/confirm-action` validated server-side by `action_guards.py`.
-
-### E. Collaboration Intelligence & 6-Factor Synergy Bundles
-*Files: [`backend/app/services/collab_intelligence.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/collab_intelligence.py), [`frontend/src/components/collab/ProposalModal.js`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/frontend/src/components/collab/ProposalModal.js)*
-- **6-Factor Partner Compatibility Scoring:** Instead of a static category table, every candidate product pairing across shops is evaluated against real operational signals:
-  1. **Customer Buy-Together Link (0..1):** Evaluates multi-category basket affinity (e.g. Tea + Bakery = 1.00, Milk + Bakes = 0.95, Staples + Oil = 0.90, Chai + Sweets = 0.85).
-  2. **Surplus Stock Relief:** Prioritizes moving the merchant's high-runway stock while excluding items near or below reorder levels.
-  3. **Partner Sales Pull:** Verifies that the partner's item sells at high velocity to drive genuine cross-store footfall.
-  4. **Price Balance Ratio:** Enforces price harmony (e.g. pairing a ₹30 snack with a ₹40 tea rather than a ₹1,500 saree).
-  5. **Upcoming Festival Uplift:** Detects if an impending occasion boosts demand for both items.
-  6. **Geographic Proximity:** Calculates exact walking distance using the Haversine formula.
-- **Safe Auto-Pricing:** Slices discount rates so both stores maintain at least 14% gross margin (12% invariant + 2% safety buffer).
-- **AI-Powered Pitches:** Gemini generates catchy bundle titles and consumer marketing pitches, while all financial figures remain deterministically validated by Python code.
-
-### F. Two-Tier Action Guards & Business Rule Verification
-*File: [`backend/app/services/action_guards.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/action_guards.py)*
-- **Dual Verification Architecture:** Business guards are executed twice:
-  1. *At Draft Creation Time:* Prevents the AI or rule engine from ever showing an economically invalid or loss-making proposal.
-  2. *At Execution Time (`/copilot/confirm-action`):* Because payloads return from the client, the server strictly re-validates all parameters before committing any database writes.
-- **Enforced Rules:**
-  - `check_quantity`: Quantities must be positive integers capped at 10,000 units.
-  - `check_discount`: Discounts must be bounded between 1.0% and 50.0%.
-  - `check_discount_vs_cost`: Rejects discounts that drop selling price below wholesale cost price (`selling_price * (1 - d) >= cost_price`).
-  - `check_new_product`: Verifies name length ($\ge 2$ chars) and strictly positive cost and selling prices.
-
-### G. Indic Voice-to-Text & Grounded Multi-Turn Copilot
-*Files: [`backend/app/services/sarvam_voice.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/sarvam_voice.py), [`backend/app/services/copilot.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/copilot.py), [`backend/app/services/copilot_executor.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/copilot_executor.py), [`backend/app/services/time_periods.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/time_periods.py)*
-- **Speech Streaming:** Captures microphone streams, encodes into standard 16kHz WAV buffers, and transcribes via Sarvam AI's Saaras model across 10+ Indic languages.
-- **Natural Date-Range Resolution:** Interprets conversational time expressions ("yesterday", "last week", "past 30 days", "this month") using `time_periods.py` to query historical sales records by explicit date ranges rather than arbitrary record limits.
-- **Persistent Chat Memory & Contextual Pronoun Resolution:** Stores conversation logs in `copilot_messages` with merchant session isolation. Resolves pronouns ("it", "this product", "restock that") to recently discussed catalog items.
-- **Interactive Inline Visual Charts (`ChartOffer.js`):** Copilot responses can attach interactive Recharts bar charts (top selling products) or column charts (daily sales trends) directly inside the chat interface.
-
-### H. 3-Tier Dynamic Catalog Pricing Engine
-*Files: [`backend/app/services/campaign.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/campaign.py), [`backend/app/services/forecasting.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/services/forecasting.py)*
-- **3-Tier Price Invariant:** Every catalog product tracks three distinct economic figures:
-  1. `cost_price`: Wholesaler inventory acquisition cost.
-  2. `selling_price`: Baseline retail list price / default MRP.
-  3. `effective_selling_price`: Active transactional selling price consumed by POS and customer checkout.
-- **Automated Lifecycle Synchronization:**
-  - **Campaign Launch (`POST /api/campaigns`):** Automatically calculates and commits discounted `effective_selling_price` across all targeted catalog items:
-    $$\text{effective\_selling\_price} = \text{round}\left(\text{selling\_price} \times \left(1 - \frac{\text{discount\_pct}}{100}\right), 2\right)$$
-  - **Campaign Completion:** When a campaign concludes or is terminated, `effective_selling_price` automatically reverts to baseline `selling_price`.
-- **System-Wide Grounding:** Daily revenue projections, 7-day demand forecasting, historical margin analysis, and AI Copilot reasoning strictly consume `effective_selling_price`.
-
-### I. Tri-Category Prioritized Operational Actions
-*File: [`backend/app/api/routes/dashboard.py`](file:///c:/Users/sricharan/CSE/Hackathons/PayTm%20Build%20For%20India%20AI%20Hackathon/LocalPulse/backend/app/api/routes/dashboard.py)*
-- **Algorithmic Prioritization:** Rather than displaying generic recommendations, the executive overview surfaces the single highest-priority operational decision across three distinct categories:
-  1. **Most Urgent Restock:** Identified by lowest runway days (< 5 days) and highest daily sales velocity.
-  2. **Top Recommended Discount:** Highest inventory holding with low turnover to free up idle working capital.
-  3. **Targeted Buffer Discount:** Lowest stock item paired with the minimum required discount percentage to clear remaining buffer before expiration without sacrificing margins.
-
----
-
-## 3. End-to-End Data Flow Architecture
+## 2. End-to-End Data Flow Architecture
 
 ### Collaboration Proposal & Mutual Approval Lifecycle
 
@@ -275,7 +191,7 @@ sequenceDiagram
 
 ---
 
-## 4. Database & Spatial Schema Design
+## 3. Database & Spatial Schema Design
 
 All documents reside in the **`localpulse`** MongoDB database.
 
@@ -405,7 +321,7 @@ All documents reside in the **`localpulse`** MongoDB database.
 
 ---
 
-## 5. Complete API Specifications
+## 4. Complete API Specifications
 
 Interactive Swagger UI documentation is served live at: **`http://localhost:8000/docs`**
 
@@ -456,7 +372,7 @@ Interactive Swagger UI documentation is served live at: **`http://localhost:8000
 
 ---
 
-## 6. Design System & UI Architecture (Dribbble Modern Redesign)
+## 5. Design System & UI Architecture (Dribbble Modern Redesign)
 
 Inspired by premium dashboard aesthetics, LocalPulse adheres to a strict design system:
 
@@ -476,7 +392,7 @@ Inspired by premium dashboard aesthetics, LocalPulse adheres to a strict design 
 
 ---
 
-## 7. AI Business Copilot & Indic Voice Pipeline
+## 6. AI Business Copilot & Indic Voice Pipeline
 
 ```mermaid
 graph LR
@@ -491,7 +407,7 @@ graph LR
 
 ---
 
-## 8. Project Directory Topology
+## 7. Project Directory Topology
 
 ```
 LocalPulse/
@@ -597,7 +513,7 @@ LocalPulse/
 
 ---
 
-## 9. Local Setup & Production Cloud Deployment
+## 8. Local Setup & Production Cloud Deployment
 
 ### A. Local Development Environment
 
