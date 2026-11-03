@@ -11,7 +11,6 @@ import {
   TrendingUp,
   AlertTriangle,
   Plus,
-  History,
   Info,
   Calendar,
   CheckCircle2,
@@ -45,8 +44,6 @@ export default function DemandPage() {
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
-  const [showMovementsModal, setShowMovementsModal] = useState(false);
-  const [movementsList, setMovementsList] = useState([]);
 
   // Form states
   const [newProduct, setNewProduct] = useState({
@@ -121,15 +118,6 @@ export default function DemandPage() {
     }
   };
 
-  const loadMovements = async (productId) => {
-    try {
-      const res = await api.get(`/products/${productId}/movements`);
-      setMovementsList(res.data);
-      setShowMovementsModal(true);
-    } catch (err) {
-      console.error('Error fetching movements:', err);
-    }
-  };
 
   useEffect(() => {
     loadData();
@@ -207,7 +195,7 @@ export default function DemandPage() {
   return (
     <AppLayout
       title="Demand & Inventory"
-      subtitle="Catalog velocity, 7-day projected demand, and audited inventory movements"
+      subtitle="Catalog velocity, 7-day projected demand, and inventory runway"
     >
       {/* Top Controls: Search + Add Product */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
@@ -339,14 +327,6 @@ export default function DemandPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => loadMovements(selectedProduct.product_id)}
-                    className="px-3 py-1 rounded-full border border-stone-200/90 text-stone-700 hover:bg-stone-50 text-xs flex items-center gap-1 shadow-2xs transition-all font-semibold"
-                    title="View movement audit log"
-                  >
-                    <History className="w-3.5 h-3.5 text-stone-500" />
-                    <span className="text-[10px]">Audit</span>
-                  </button>
                   <button
                     onClick={() => setShowAdjustModal(true)}
                     className="px-3.5 py-1 rounded-full bg-[#16181a] text-white hover:bg-stone-800 text-xs font-bold shadow-2xs transition-all"
@@ -683,40 +663,6 @@ export default function DemandPage() {
             </button>
           </div>
         </form>
-      </Modal>
-
-      {/* Movements Audit Log Modal */}
-      <Modal
-        isOpen={showMovementsModal}
-        onClose={() => setShowMovementsModal(false)}
-        title={selectedProduct ? `Audit Trail: ${selectedProduct.name}` : 'Inventory Movement History'}
-        maxWidth="max-w-xl"
-      >
-        <div className="space-y-3">
-          {movementsList.length === 0 ? (
-            <p className="text-xs text-stone-400 text-center py-4">No logged movements for this product.</p>
-          ) : (
-            movementsList.map((m) => (
-              <div key={m.movement_id} className="p-3.5 rounded-2xl bg-[#f7f8f4] border border-stone-200 text-xs flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={m.quantity_change > 0 ? 'success' : 'danger'} size="sm">
-                      {m.adjustment_type}
-                    </Badge>
-                    <span className="font-bold text-[#16181a]">
-                      {m.quantity_change > 0 ? `+${m.quantity_change}` : m.quantity_change} units
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-stone-500 mt-1">{m.notes || 'No description recorded'}</p>
-                  <p className="text-[10px] text-stone-400 mt-0.5">{new Date(m.created_at).toLocaleString()}</p>
-                </div>
-                <div className="text-right text-[11px] text-stone-500">
-                  <span>Balance: {m.stock_before} → <strong className="text-[#16181a]">{m.stock_after}</strong></span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </Modal>
     </AppLayout>
   );

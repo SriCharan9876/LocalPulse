@@ -9,7 +9,6 @@ import {
   TrendingUp,
   Sparkles,
   Megaphone,
-  ChevronsUpDown,
   BookOpen,
   LogOut,
   MapPin,
@@ -131,7 +130,7 @@ export default function Sidebar() {
       {/* Footer Links (Docs, Sign Out & Bottom User Pill) */}
       <div className="p-3 border-t border-white/5 space-y-1">
         <a
-          href="https://github.com"
+          href="https://github.com/SriCharan9876/LocalPulse"
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-stone-400 hover:text-white hover:bg-white/5 transition-colors"
