@@ -29,6 +29,11 @@ export function AuthProvider({ children }) {
         })
         .catch((err) => {
           console.warn('Could not refresh /auth/me:', err);
+          if (err.response?.status === 401 || err.response?.status === 404) {
+            clearAuthSession();
+            setToken(null);
+            setMerchant(null);
+          }
         });
     }
     setLoading(false);

@@ -319,10 +319,12 @@ async def seed_database(db, force: bool = False):
         await db.inventory_movements.delete_many({"merchant_id": {"$nin": demo_ids}})
         await db.collaborations.delete_many({"$or": [{"initiator_merchant_id": {"$nin": demo_ids}}, {"partner_merchant_id": {"$nin": demo_ids}}]})
         await db.campaigns.delete_many({"merchant_id": {"$nin": demo_ids}})
-        await db.campaign_redemptions.delete_many({"merchant_id": {"$nin": demo_ids}})
+        await db.campaign_redemptions.delete_many({})
         await db.copilot_conversations.delete_many({})
         await db.copilot_messages.delete_many({})
+        await db.merchant_occasion_insights.delete_many({})
         await db.otps.delete_many({})
+        await db.neighborhood_events.delete_many({})
 
     # Clean existing demo records cleanly before re-inserting
     await db.merchants.delete_many({"merchant_id": {"$in": demo_ids}})
@@ -331,7 +333,8 @@ async def seed_database(db, force: bool = False):
     await db.inventory_movements.delete_many({"merchant_id": {"$in": demo_ids}})
     await db.collaborations.delete_many({"$or": [{"initiator_merchant_id": {"$in": demo_ids}}, {"partner_merchant_id": {"$in": demo_ids}}]})
     await db.campaigns.delete_many({"merchant_id": {"$in": demo_ids}})
-    await db.campaign_redemptions.delete_many({"merchant_id": {"$in": demo_ids}})
+    await db.campaign_redemptions.delete_many({"$or": [{"merchant_id": {"$in": demo_ids}}, {"campaign_id": "camp-001-festive"}]})
+    await db.merchant_occasion_insights.delete_many({"merchant_id": {"$in": demo_ids}})
 
     # Use deterministic PRNG
     rng = random.Random(42)
