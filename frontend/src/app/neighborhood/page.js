@@ -13,10 +13,8 @@ import {
   Calendar,
   Sparkles,
   TrendingUp,
-  RefreshCw,
   Navigation,
   ArrowRight,
-  ShieldAlert,
   Loader2,
   CheckCircle2,
   Phone,
@@ -64,10 +62,6 @@ export default function NeighborhoodPage() {
   const [collabLoadingId, setCollabLoadingId] = useState(null);
   const [collabNotice, setCollabNotice] = useState('');
 
-  // Reset Data Modal state
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [resetSuccessNotice, setResetSuccessNotice] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -167,22 +161,6 @@ export default function NeighborhoodPage() {
     }
   };
 
-  const handleResetEntireData = async () => {
-    setResetting(true);
-    try {
-      const res = await api.post('/seed/reset');
-      setShowResetModal(false);
-      setCollabData(null);
-      setResetSuccessNotice('Entire database successfully reset to default demo records with full coordinates and baseline catalogs!');
-      setTimeout(() => setResetSuccessNotice(''), 6000);
-      await loadData();
-    } catch (err) {
-      console.error('Database reset failed:', err);
-      alert('Failed to reset database. Please ensure backend is running.');
-    } finally {
-      setResetting(false);
-    }
-  };
 
   const currLat = merchant?.latitude || summary?.current_coordinates?.lat || 12.920737;
   const currLng = merchant?.longitude || summary?.current_coordinates?.lng || 77.668710;
@@ -192,7 +170,7 @@ export default function NeighborhoodPage() {
       title="Local Map & Community Events"
       subtitle="Geographical merchant clusters, proximity radar, demand events, and joint bundle collaborations"
     >
-      {/* Top Banner and Quick Reset Action */}
+      {/* Top Cluster Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-stone-200/90 bg-white text-stone-700 text-xs font-semibold shadow-2xs">
@@ -207,15 +185,6 @@ export default function NeighborhoodPage() {
           )}
         </div>
 
-        {/* Global Reset Entire Data Button */}
-        <button
-          onClick={() => setShowResetModal(true)}
-          className="px-4 py-2 rounded-full bg-white hover:bg-stone-50 border border-stone-200/90 text-stone-800 text-xs font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer hover:border-stone-400 self-start sm:self-auto"
-          title="Reset all store records, inventory, sales, and events back to fresh demo defaults"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-stone-600" />
-          <span>Reset Entire Data</span>
-        </button>
       </div>
 
       {collabNotice && (
@@ -225,13 +194,6 @@ export default function NeighborhoodPage() {
         </div>
       )}
 
-      {/* Success Notification Banner */}
-      {resetSuccessNotice && (
-        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2.5 animate-in fade-in shadow-2xs font-medium">
-          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-          <span>{resetSuccessNotice}</span>
-        </div>
-      )}
 
       {/* Hero Metric Cards (Dribbble 3-card layout) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -639,69 +601,6 @@ export default function NeighborhoodPage() {
         }}
       />
 
-      {/* Reset Entire Database Modal */}
-      <Modal
-        isOpen={showResetModal}
-        onClose={() => !resetting && setShowResetModal(false)}
-        title="Reset Entire Database to Defaults?"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-[#fbe8e4] border border-[#f3c5bd] text-xs text-[#a43b27] flex items-start gap-2.5">
-            <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5 text-[#a43b27]" />
-            <div className="leading-relaxed">
-              <strong className="font-bold">Administrative Environment Reset:</strong>
-              <p className="mt-1">
-                This will reset MongoDB collections across all 6 Indiranagar demo merchants, realign all exact shop coordinates, restore 90-day transaction histories, reset product stock levels to baseline thresholds, and regenerate fresh community calendar events.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2 text-xs text-stone-600 bg-[#f7f8f4] p-3.5 rounded-2xl border border-stone-200/90 font-medium">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#16181a]" />
-              <span>Restores 6 merchants with exact coordinates ({currLat.toFixed(4)}° N, {currLng.toFixed(4)}° E)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#16181a]" />
-              <span>Re-seeds 19 products, 1,700+ transactions & 7 retail demand events</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#16181a]" />
-              <span>Clears transient copilot conversation logs</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
-            <button
-              type="button"
-              onClick={() => setShowResetModal(false)}
-              disabled={resetting}
-              className="px-4 py-2 rounded-full border border-stone-200/90 text-stone-700 hover:bg-stone-50 font-bold text-xs transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleResetEntireData}
-              disabled={resetting}
-              className="px-5 py-2 rounded-full bg-[#c25e4e] hover:bg-[#a43b27] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
-            >
-              {resetting ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                  <span>Re-seeding Database...</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 text-white" />
-                  <span>Confirm Reset</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </Modal>
     </AppLayout>
   );
 }

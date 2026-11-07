@@ -547,6 +547,7 @@ Interactive Swagger UI documentation is served live at: **`http://localhost:8000
 
 ### Authentication & Store Profile (`/api/auth`)
 - `POST /api/auth/login`: Authenticate via email/password; returns bearer JWT and profile.
+- `POST /api/auth/google`: Authenticate or auto-onboard a merchant using Google Sign-In (supports Google Identity Services ID tokens, OAuth access tokens, and automatic store provisioning in the active retail cluster with starter catalog).
 - `POST /api/auth/signup`: Onboard a new merchant with automatic Bengaluru cluster coordinate assignment.
 - `GET /api/auth/me`: Retrieve currently authenticated merchant profile with coordinates.
 - `PUT /api/auth/me`: Update storefront details (business name, owner, category, address, phone, latitude, longitude).

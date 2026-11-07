@@ -306,22 +306,32 @@ MERCHANTS_DATA = [
 
 async def seed_database(db, force: bool = False):
     """Seed synthetic demo merchants, products, 90-day sales history, collaborations, and campaigns."""
-    existing_merchants = await db.merchants.count_documents({})
-    if existing_merchants > 0 and not force:
-        return {"status": "skipped", "message": f"Database already contains {existing_merchants} merchants"}
+    demo_ids = [m["merchant_id"] for m in MERCHANTS_DATA]
+    demo_count = await db.merchants.count_documents({"merchant_id": {"$in": demo_ids}})
+    if demo_count >= len(MERCHANTS_DATA) and not force:
+        return {"status": "skipped", "message": f"Database already contains all {demo_count} demo merchants"}
 
-    # Clear existing data if force
+    # If force reset requested, clean up all non-prebuilt user records
     if force:
-        await db.merchants.delete_many({})
-        await db.products.delete_many({})
-        await db.sales.delete_many({})
-        await db.inventory_movements.delete_many({})
-        await db.collaborations.delete_many({})
-        await db.campaigns.delete_many({})
-        await db.campaign_redemptions.delete_many({})
+        await db.merchants.delete_many({"merchant_id": {"$nin": demo_ids}})
+        await db.products.delete_many({"merchant_id": {"$nin": demo_ids}})
+        await db.sales.delete_many({"merchant_id": {"$nin": demo_ids}})
+        await db.inventory_movements.delete_many({"merchant_id": {"$nin": demo_ids}})
+        await db.collaborations.delete_many({"$or": [{"initiator_merchant_id": {"$nin": demo_ids}}, {"partner_merchant_id": {"$nin": demo_ids}}]})
+        await db.campaigns.delete_many({"merchant_id": {"$nin": demo_ids}})
+        await db.campaign_redemptions.delete_many({"merchant_id": {"$nin": demo_ids}})
         await db.copilot_conversations.delete_many({})
         await db.copilot_messages.delete_many({})
-        await db.neighborhood_events.delete_many({})
+        await db.otps.delete_many({})
+
+    # Clean existing demo records cleanly before re-inserting
+    await db.merchants.delete_many({"merchant_id": {"$in": demo_ids}})
+    await db.products.delete_many({"merchant_id": {"$in": demo_ids}})
+    await db.sales.delete_many({"merchant_id": {"$in": demo_ids}})
+    await db.inventory_movements.delete_many({"merchant_id": {"$in": demo_ids}})
+    await db.collaborations.delete_many({"$or": [{"initiator_merchant_id": {"$in": demo_ids}}, {"partner_merchant_id": {"$in": demo_ids}}]})
+    await db.campaigns.delete_many({"merchant_id": {"$in": demo_ids}})
+    await db.campaign_redemptions.delete_many({"merchant_id": {"$in": demo_ids}})
 
     # Use deterministic PRNG
     rng = random.Random(42)

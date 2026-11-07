@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -27,22 +26,18 @@ import {
   Bot,
   RotateCcw,
   Percent,
+  SlidersHorizontal,
+  Flame,
+  Radio,
+  Clock,
+  ShieldAlert,
 } from 'lucide-react';
 import { LogoMark } from '@/components/ui/Logo';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 
 export default function EntryPage() {
-  const { isAuthenticated, demoMerchants, switchDemoMerchant, user } = useAuth();
-  const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
   const [activeCategoryTab, setActiveCategoryTab] = useState(0);
-
-  const handleQuickDemoLaunch = async (merchantId) => {
-    try {
-      await switchDemoMerchant(merchantId);
-      router.push('/dashboard');
-    } catch (err) {
-      console.error('Demo launch error:', err);
-    }
-  };
 
   const copilotShowcase = [
     {
@@ -51,6 +46,7 @@ export default function EntryPage() {
       badge: 'Spatial Radar',
       query: 'Who are the closest stores near me within 1 km?',
       response: 'Found 3 nearby stores: Chai Point (420m away), Modern Threads (200m away), and Sanjeevani Wellness (400m away). You have high complementary synergy with Chai Point for bakery combos.',
+      featureLink: '/neighborhood',
     },
     {
       category: 'Collaborations',
@@ -58,6 +54,7 @@ export default function EntryPage() {
       badge: '6-Factor Synergy',
       query: 'Propose a joint combo bundle with Krishna Bakery',
       response: 'Drafted "Morning Tea & Rusk Combo" with 10% discount on both sides. Both shops maintain verified 14% margins (safely above the 12% floor). Ready for mutual sign-off.',
+      featureLink: '/collaborations',
     },
     {
       category: 'Forecasting',
@@ -65,6 +62,7 @@ export default function EntryPage() {
       badge: 'Weekday AI',
       query: 'Show 7-day demand forecast and stockout risks',
       response: 'Amul Taaza Milk has 9 cartons remaining with 1.3 days of runway. Predicted weekend surge requires 50 cartons replenishment before Friday evening.',
+      featureLink: '/demand',
     },
     {
       category: 'Restock & Loss',
@@ -72,6 +70,7 @@ export default function EntryPage() {
       badge: 'Audit Ledger',
       query: 'Record 5 units of Bread damaged as loss',
       response: 'Prepared AUDIT_CORRECTION draft to deduct 5 units of Whole Wheat Bread with audit logging. Stock will update from 28 to 23 upon confirmation.',
+      featureLink: '/demand',
     },
     {
       category: 'Sales Analytics',
@@ -79,6 +78,7 @@ export default function EntryPage() {
       badge: 'Telemetry',
       query: 'What are my top selling products this week?',
       response: 'Top performers: 1. Amul Taaza Milk (₹13,440 · 182 units), 2. Tata Tea Gold (₹9,800 · 35 units), 3. Aashirvaad Atta (₹8,750 · 25 units). Gross revenue up +14.2% vs previous period.',
+      featureLink: '/dashboard',
     },
     {
       category: 'Campaigns & Catalog',
@@ -86,6 +86,34 @@ export default function EntryPage() {
       badge: 'Growth Engine',
       query: 'Recommend clearance discounts for excess stock',
       response: 'Identified Fortune Sunflower Oil (45 units, 38 days cover). Recommended 10% weekend promotional discount to lift turnover while locking in a 14.8% profit margin.',
+      featureLink: '/campaigns',
+    },
+  ];
+
+  const synergySignals = [
+    {
+      title: 'Customer Link (0.45)',
+      description: '10-facet basket co-occurrence: tea & bakery, dairy & tea, staples & cooking oil. Pairs with <0.60 affinity are filtered.',
+    },
+    {
+      title: 'Stock Surplus Cover (0.15)',
+      description: 'Promotes surplus inventory only. Strictly blocks items below safety reorder threshold from co-promotions.',
+    },
+    {
+      title: 'Partner Pull & Velocity (0.10)',
+      description: 'Measures partner item sales velocity to ensure the cross-store promotion actively drives reciprocal footfall.',
+    },
+    {
+      title: 'Price Balance Ratio (0.10)',
+      description: 'Penalizes extreme price disparities (e.g. ₹28 biscuits with ₹1,800 silk saree) using square-root dampening.',
+    },
+    {
+      title: 'Partner Stock Sufficiency (0.10)',
+      description: 'Confirms the partner store holds sufficient inventory buffer to satisfy combined promotion volume.',
+    },
+    {
+      title: 'Festival Lookahead Lift (0.10)',
+      description: 'Scans Google Calendar for festivals within 21 days that boost both product categories simultaneously.',
     },
   ];
 
@@ -129,7 +157,7 @@ export default function EntryPage() {
                 href="/signup"
                 className="px-5 py-2.5 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-bold text-xs transition-all shadow-sm flex items-center gap-1.5 group"
               >
-                <span>Register Merchant</span>
+                <span>Register Store</span>
                 <ArrowRight className="w-3.5 h-3.5 text-[#e0fd53] group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </>
@@ -160,8 +188,40 @@ export default function EntryPage() {
           Zero-guesswork retail operations for Indian neighborhood stores: weekday-stratified demand modeling, 18-tool Indic voice copilot (Sarvam AI + Gemini 3.8 Flash), deterministic 12% margin protection, and real-time proximity map collaboration.
         </p>
 
-        {/* Core Pillars Grid */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full text-left">
+        {/* Hero CTAs */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          {isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="px-6 py-3 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 group"
+            >
+              <span>Launch Store Console</span>
+              <ArrowRight className="w-4 h-4 text-[#e0fd53] group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/signup"
+                className="px-6 py-3 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-bold text-xs transition-all shadow-md flex items-center gap-2 group"
+              >
+                <span>Register Store</span>
+                <ArrowRight className="w-4 h-4 text-[#e0fd53] group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <div className="w-56">
+                <GoogleSignInButton text="Sign In with Google" />
+              </div>
+              <Link
+                href="/login"
+                className="px-5 py-2.5 rounded-full bg-white hover:bg-stone-100 border border-stone-300 text-stone-800 font-bold text-xs transition-all shadow-xs flex items-center gap-1.5"
+              >
+                <span>Email Login</span>
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Core 4 Pillars Grid */}
+        <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full text-left">
           {/* Card 1: Demand Modeling */}
           <div className="p-6 rounded-[28px] bg-white border border-stone-200/90 shadow-[0_4px_24px_rgba(20,24,20,0.04)] flex flex-col justify-between hover:border-[#16181a] transition-all">
             <div>
@@ -243,7 +303,7 @@ export default function EntryPage() {
           </div>
         </div>
 
-        {/* Interactive Capability Showcase: Copilot & Autonomous Tools */}
+        {/* Feature Deep Dive 1: Autonomous AI Copilot & 18 Function-Calling Tools */}
         <div className="mt-12 w-full p-6 md:p-8 rounded-[32px] bg-white border border-stone-200/90 text-left shadow-[0_4px_30px_rgba(20,24,20,0.05)]">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-6 border-b border-stone-100">
             <div>
@@ -256,7 +316,7 @@ export default function EntryPage() {
                 </h2>
               </div>
               <p className="text-xs text-stone-500 mt-1 font-medium">
-                Backed by 18 function-calling tools, natural language date-range resolution, and seamless fallback to deterministic offline rules.
+                Backed by 18 function-calling tools, natural language date resolution (yesterday, last week), and inline interactive Recharts visualizations.
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs text-[#16181a] font-bold bg-[#edece4] border border-stone-300/80 px-3.5 py-1.5 rounded-full shrink-0">
@@ -331,111 +391,229 @@ export default function EntryPage() {
           </div>
         </div>
 
-        {/* 1-Click Prototype Launcher: Select a Demo Merchant */}
-        <div className="mt-10 w-full p-6 md:p-8 rounded-[32px] bg-white border border-stone-200/90 text-left shadow-[0_4px_30px_rgba(20,24,20,0.05)]">
+        {/* Feature Deep Dive 2: 6-Factor Collaboration Intelligence & 12% Invariant */}
+        <div className="mt-8 w-full p-6 md:p-8 rounded-[32px] bg-white border border-stone-200/90 text-left shadow-[0_4px_30px_rgba(20,24,20,0.05)]">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-6 border-b border-stone-100">
             <div>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-[#16181a] text-[#e0fd53] flex items-center justify-center">
-                  <Store className="w-4 h-4" />
+                  <Handshake className="w-4 h-4" />
                 </div>
                 <h2 className="text-lg font-black text-[#16181a] tracking-tight">
-                  1-Click Prototype Launcher: Select a Demo Merchant
+                  6-Factor Collaboration Intelligence &amp; 12% Margin Invariant
                 </h2>
               </div>
               <p className="text-xs text-stone-500 mt-1 font-medium">
-                Instantly jump into a production-grade merchant workspace with 90 days of transactions, inventory catalogs, dynamic pricing, and active collaboration proposals.
+                Scientific cross-merchant pairing algorithm that computes win-win bundle synergies and mathematically enforces a 12% minimum profit floor.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-[#16181a] font-bold bg-[#edece4] border border-stone-300/80 px-3.5 py-1.5 rounded-full shrink-0">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Full JWT &amp; Role-Gated Sessions</span>
-            </div>
+            <Link
+              href="/collaborations"
+              className="text-xs font-bold text-[#16181a] hover:underline flex items-center gap-1 shrink-0"
+            >
+              <span>Explore Collaborations</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {demoMerchants.slice(0, 6).map((m) => (
-              <button
-                key={m.merchant_id}
-                onClick={() => handleQuickDemoLaunch(m.merchant_id)}
-                className="p-4 rounded-2xl bg-[#f7f8f4] border border-stone-200/80 hover:border-[#16181a] hover:bg-white text-left transition-all group flex flex-col justify-between shadow-2xs cursor-pointer"
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {synergySignals.map((sig, i) => (
+              <div
+                key={i}
+                className="p-4 rounded-2xl bg-[#f7f8f4] border border-stone-200/80 flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-[#16181a] bg-[#e0fd53] px-2.5 py-0.5 rounded-full">
-                      {m.category?.split('&')[0]?.trim() || 'Store'}
-                    </span>
-                    <span className="text-[10px] text-stone-400 font-mono">
-                      {m.merchant_id}
-                    </span>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-mono text-stone-400 uppercase">Signal 0{i + 1}</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#16181a]" />
                   </div>
-                  <p className="text-sm font-extrabold text-[#16181a] group-hover:text-black transition-colors line-clamp-1">
-                    {m.business_name}
-                  </p>
-                  <p className="text-xs text-stone-500 mt-0.5 font-medium">
-                    Owner: <span className="text-stone-700">{m.owner_name}</span>
-                  </p>
-                  <p className="text-[11px] text-stone-400 mt-1 line-clamp-1 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 shrink-0 text-stone-400" />
-                    <span>{m.address || 'Bengaluru Retail Cluster'}</span>
-                  </p>
+                  <h4 className="text-xs font-extrabold text-[#16181a] tracking-tight">{sig.title}</h4>
+                  <p className="text-[11px] text-stone-500 mt-1 font-medium leading-relaxed">{sig.description}</p>
                 </div>
-
-                <div className="mt-4 pt-2.5 border-t border-stone-200/70 flex items-center justify-between text-xs text-stone-700 group-hover:text-[#16181a] font-bold">
-                  <span>Open Merchant Dashboard</span>
-                  <div className="w-6 h-6 rounded-full bg-stone-200/70 group-hover:bg-[#16181a] group-hover:text-[#e0fd53] flex items-center justify-center transition-colors">
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-              </button>
+              </div>
             ))}
           </div>
 
-          <div className="mt-6 pt-5 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
-            <div className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-stone-400" />
-              <span>All 6 demo accounts pre-configured with GPS coordinates, inventory levels, and live AI context.</span>
+          {/* Margin Protection Showcase Card */}
+          <div className="mt-4 p-5 rounded-2xl bg-[#16181a] text-white flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#e0fd53]">Deterministic Safety Gate</span>
+              <h4 className="text-sm font-bold">12% Minimum Margin Invariant (+2% Safety Buffer)</h4>
+              <p className="text-xs text-stone-300 font-medium max-w-2xl leading-relaxed">
+                All proposed discounts are pre-validated in code. If an aggressive discount would push either store's gross profit margin below 12%, the proposal is rejected before partner submission.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-center">
+                <span className="text-[10px] uppercase text-stone-400 block font-semibold">Invariant Floor</span>
+                <span className="text-base font-black text-[#e0fd53]">12.0%</span>
+              </div>
+              <div className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-center">
+                <span className="text-[10px] uppercase text-stone-400 block font-semibold">Target Buffer</span>
+                <span className="text-base font-black text-white">14.0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature Deep Dive 3: Spatial Radar, Map Bundles & Store Profile */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 w-full text-left">
+          {/* Spatial Radar Card */}
+          <div className="p-6 md:p-7 rounded-[28px] bg-white border border-stone-200/90 shadow-[0_4px_24px_rgba(20,24,20,0.04)] flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-9 h-9 rounded-xl bg-[#edece4] text-[#16181a] flex items-center justify-center font-bold">
+                  <Compass className="w-5 h-5 text-[#16181a]" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#16181a] bg-[#e0fd53] px-2.5 py-0.5 rounded-full">
+                  OpenStreetMap
+                </span>
+              </div>
+              <h3 className="text-base font-extrabold text-[#16181a] tracking-tight">
+                Hyperlocal Spatial Radar &amp; Proximity Map
+              </h3>
+              <p className="text-xs text-stone-500 mt-2 font-medium leading-relaxed">
+                Computes exact Haversine distance in meters and kilometers. Map pins and store cards directly surface complementary partner synergies, allowing merchants to launch a joint bundle proposal without leaving the map.
+              </p>
+              <div className="mt-4 space-y-2 text-xs font-medium text-stone-600">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Proximity filters (0.5 km, 1 km, 2 km radii)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Interactive Store Profile pinpicker (`/profile`)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Browser GPS coordinate detection</span>
+                </div>
+              </div>
             </div>
             <Link
-              href="/signup"
-              className="text-xs font-bold text-[#16181a] hover:underline flex items-center gap-1"
+              href="/neighborhood"
+              className="mt-6 pt-4 border-t border-stone-100 text-xs font-bold text-[#16181a] hover:underline flex items-center justify-between"
             >
-              <span>Or register a custom merchant store</span>
-              <ArrowRight className="w-3.5 h-3.5 text-[#16181a]" />
+              <span>Explore Spatial Map</span>
+              <ChevronRight className="w-4 h-4 text-stone-400" />
+            </Link>
+          </div>
+
+          {/* All-India Occasions & Event Action Plans Card */}
+          <div className="p-6 md:p-7 rounded-[28px] bg-white border border-stone-200/90 shadow-[0_4px_24px_rgba(20,24,20,0.04)] flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-9 h-9 rounded-xl bg-[#edece4] text-[#16181a] flex items-center justify-center font-bold">
+                  <Calendar className="w-5 h-5 text-[#16181a]" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#16181a] bg-[#e0fd53] px-2.5 py-0.5 rounded-full">
+                  Zero-Key Feed
+                </span>
+              </div>
+              <h3 className="text-base font-extrabold text-[#16181a] tracking-tight">
+                Live All-India Occasions &amp; Action Planning
+              </h3>
+              <p className="text-xs text-stone-500 mt-2 font-medium leading-relaxed">
+                Official Google Calendar national holiday continuous iCal stream synchronized in real-time. Translates cultural and religious events into store-specific demand multipliers and practical checkout tips.
+              </p>
+              <div className="mt-4 space-y-2 text-xs font-medium text-stone-600">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Category-specific demand multipliers (up to 2.8x)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>1-Click Event Action Plan modal with restock drafts</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Paytm Soundbox checkout rush volume guidance</span>
+                </div>
+              </div>
+            </div>
+            <Link
+              href="/neighborhood"
+              className="mt-6 pt-4 border-t border-stone-100 text-xs font-bold text-[#16181a] hover:underline flex items-center justify-between"
+            >
+              <span>View All-India Calendar</span>
+              <ChevronRight className="w-4 h-4 text-stone-400" />
             </Link>
           </div>
         </div>
 
-        {/* Architectural Highlights / Trust Grid */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 w-full text-left">
+        {/* Feature Deep Dive 4: 3-Tier Pricing, Demand Runway & Resilience Shield */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 w-full text-left">
           <div className="p-5 rounded-2xl bg-white border border-stone-200/90 text-xs space-y-2">
             <div className="flex items-center gap-2 font-bold text-[#16181a]">
-              <Compass className="w-4 h-4 text-stone-600" />
-              <span>Store Profile &amp; Leaflet GPS</span>
+              <TrendingUp className="w-4 h-4 text-stone-600" />
+              <span>3-Tier Dynamic Catalog Pricing</span>
             </div>
             <p className="text-stone-500 font-medium leading-relaxed">
-              Every merchant can manage precise storefront coordinates using the interactive map or browser geolocation, automatically updating neighborhood radar distances.
+              Wholesale cost price, baseline retail selling price, and promotional effective selling price are decoupled, safeguarding margins during campaigns and auto-restoring upon campaign conclusion.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white border border-stone-200/90 text-xs space-y-2">
+            <div className="flex items-center gap-2 font-bold text-[#16181a]">
+              <Package className="w-4 h-4 text-stone-600" />
+              <span>Audited Stock Movement Ledger</span>
+            </div>
+            <p className="text-stone-500 font-medium leading-relaxed">
+              Every restock, inventory audit, or damage loss writes an immutable audit record to `inventory_movements` with timestamp, quantity change, and merchant rationale.
             </p>
           </div>
 
           <div className="p-5 rounded-2xl bg-white border border-stone-200/90 text-xs space-y-2">
             <div className="flex items-center gap-2 font-bold text-[#16181a]">
               <RotateCcw className="w-4 h-4 text-stone-600" />
-              <span>Dual-Engine Offline Fallback</span>
+              <span>Dual-Engine Offline Fallback Shield</span>
             </div>
             <p className="text-stone-500 font-medium leading-relaxed">
-              If external LLM rate limits (429) or internet drops occur, the platform automatically falls back to deterministic rule algorithms with zero system downtime.
+              Context-scoped rate limit middleware detects Gemini 429 quota exhaustion instantly and seamlessly falls back to the deterministic keyword router with zero application downtime.
             </p>
           </div>
+        </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-stone-200/90 text-xs space-y-2">
-            <div className="flex items-center gap-2 font-bold text-[#16181a]">
-              <IndianRupee className="w-4 h-4 text-stone-600" />
-              <span>Audited 3-Tier Catalog Pricing</span>
-            </div>
-            <p className="text-stone-500 font-medium leading-relaxed">
-              Cost price, baseline retail price, and promotional effective selling price are tracked independently so profit margins remain mathematically protected at all times.
-            </p>
+        {/* Bottom Call to Action */}
+        <div className="mt-12 w-full p-8 md:p-10 rounded-[32px] bg-[#16181a] text-white text-center flex flex-col items-center justify-center space-y-4 shadow-xl">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-[#e0fd53] bg-white/10 px-3 py-1 rounded-full">
+            Autonomous Retail Growth Engine
+          </span>
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight max-w-xl">
+            Modernize Your Neighborhood Store with AI-Powered Intelligence
+          </h2>
+          <p className="text-xs md:text-sm text-stone-300 max-w-lg font-medium leading-relaxed">
+            Eliminate stockouts, unlock collaborative co-promotions with neighbor shops, and run natural voice queries in your local language.
+          </p>
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            {isAuthenticated ? (
+              <Link
+                href="/dashboard"
+                className="px-6 py-3 rounded-full bg-[#e0fd53] hover:bg-[#d6f540] text-[#16181a] font-bold text-xs transition-all shadow-sm flex items-center gap-2"
+              >
+                <span>Open Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className="px-6 py-3 rounded-full bg-[#e0fd53] hover:bg-[#d6f540] text-[#16181a] font-bold text-xs transition-all shadow-sm flex items-center gap-2"
+                >
+                  <span>Register Store Now</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <div className="w-56">
+                  <GoogleSignInButton text="Sign In with Google" />
+                </div>
+                <Link
+                  href="/login"
+                  className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs transition-all"
+                >
+                  <span>Email Sign In</span>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </main>

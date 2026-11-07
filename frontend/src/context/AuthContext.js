@@ -63,6 +63,39 @@ export function AuthProvider({ children }) {
     return profile;
   };
 
+  const loginWithGoogle = async (googlePayload) => {
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/google', googlePayload);
+      const { access_token, merchant: profile } = res.data;
+      setAuthSession(access_token, profile);
+      setToken(access_token);
+      setMerchant(profile);
+      return profile;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendOtp = async (phoneOrEmail) => {
+    const res = await api.post('/auth/otp/send', { phone_or_email: phoneOrEmail });
+    return res.data;
+  };
+
+  const verifyOtp = async (phoneOrEmail, otp) => {
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/otp/verify', { phone_or_email: phoneOrEmail, otp });
+      const { access_token, merchant: profile } = res.data;
+      setAuthSession(access_token, profile);
+      setToken(access_token);
+      setMerchant(profile);
+      return profile;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const switchDemoMerchant = async (merchantId) => {
     setLoading(true);
     try {
@@ -71,8 +104,13 @@ export function AuthProvider({ children }) {
       setAuthSession(access_token, profile);
       setToken(access_token);
       setMerchant(profile);
-      // Reload current page to refresh all queries with new merchant token
-      window.location.reload();
+      if (typeof window !== 'undefined') {
+        if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
+          window.location.href = '/dashboard';
+        } else {
+          window.location.reload();
+        }
+      }
       return profile;
     } finally {
       setLoading(false);
@@ -102,6 +140,9 @@ export function AuthProvider({ children }) {
         demoMerchants,
         login,
         signup,
+        loginWithGoogle,
+        sendOtp,
+        verifyOtp,
         switchDemoMerchant,
         updateProfile,
         logout,

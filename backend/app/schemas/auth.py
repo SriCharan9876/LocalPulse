@@ -6,6 +6,34 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class GoogleLoginRequest(BaseModel):
+    credential: Optional[str] = Field(None, description="Google ID Token (JWT) from Google Identity Services")
+    id_token: Optional[str] = Field(None, description="Alternative field for Google ID Token")
+    access_token: Optional[str] = Field(None, description="Google OAuth access token")
+    email: Optional[EmailStr] = None
+    name: Optional[str] = None
+    picture: Optional[str] = None
+    business_name: Optional[str] = None
+    category: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+class SendOtpRequest(BaseModel):
+    phone_or_email: str = Field(..., min_length=3, max_length=100)
+
+class VerifyOtpRequest(BaseModel):
+    phone_or_email: str = Field(..., min_length=3, max_length=100)
+    otp: str = Field(..., min_length=4, max_length=8)
+
+class OtpResponse(BaseModel):
+    status: str
+    message: str
+    phone_or_email: str
+    demo_otp: Optional[str] = None
+    expires_in_seconds: int = 300
+
 class SignupRequest(BaseModel):
     business_name: str = Field(..., min_length=2, max_length=100)
     owner_name: str = Field(..., min_length=2, max_length=100)

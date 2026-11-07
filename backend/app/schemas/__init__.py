@@ -1,5 +1,6 @@
 from app.schemas.auth import (
-    LoginRequest, SignupRequest, MerchantProfile, MerchantProfileUpdate, Token, SwitchDemoMerchantRequest
+    LoginRequest, SignupRequest, GoogleLoginRequest, SendOtpRequest, VerifyOtpRequest, OtpResponse,
+    MerchantProfile, MerchantProfileUpdate, Token, SwitchDemoMerchantRequest
 )
 from app.schemas.product import (
     ProductCreate, ProductUpdate, ProductResponse,

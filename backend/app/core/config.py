@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # Calendarific API Key (Real All-India Festivals & Occasions: https://calendarific.com)
     CALENDARIFIC_API_KEY: Optional[str] = None
 
+    # Google OAuth / Sign-In Client ID
+    GOOGLE_CLIENT_ID: Optional[str] = None
+
     @property
     def cors_origins(self) -> list[str]:
         origins = [
