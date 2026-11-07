@@ -16,9 +16,13 @@ ALL_CATEGORIES = "all categories"
 # one of them would inflate forecasts most days of the year.
 FORECAST_EVENT_SEVERITIES = {"HIGH"}
 # Don't let a slow or unreachable calendar slow down the dashboard / demand / copilot:
-OCCASIONS_TIMEOUT_SECONDS = 3.0
+OCCASIONS_TIMEOUT_SECONDS = 2.0
 OCCASIONS_RETRY_AFTER_SECONDS = 600  # after a failure, skip festivals for 10 minutes
 _occasions_failed_at: float = 0.0
+
+# Memory cache for relevant festivals so copilot / forecasting loads instantly (< 1ms)
+_RELEVANT_EVENTS_CACHE: Optional[Tuple[List[dict], float]] = None
+_RELEVANT_EVENTS_CACHE_TTL: float = 1800.0  # 30 minutes
 
 # Words too generic to link a festival impact to a product ("Retail Footfall", "Gift Boxes" ...)
 _GENERIC_WORDS = {
@@ -53,20 +57,28 @@ def _key_words(text: Optional[str]) -> set:
     }
 
 
-async def load_relevant_events(db, merchant: dict) -> List[dict]:
+async def load_relevant_events(db, merchant: Optional[dict] = None) -> List[dict]:
     """
     Major upcoming festivals for forecasting, from the same All-India occasions feed
     the Events page uses. Load once per request and pass to forecast_product(events=...).
     Returns [] (no festival adjustment) if the feed is slow or unavailable.
+    Results are cached in memory for fast instant (<1ms) multi-turn copilot responses.
     """
-    global _occasions_failed_at
-    if time.time() - _occasions_failed_at < OCCASIONS_RETRY_AFTER_SECONDS:
+    global _occasions_failed_at, _RELEVANT_EVENTS_CACHE
+    now = time.time()
+
+    # Instant return from memory cache if fresh
+    if _RELEVANT_EVENTS_CACHE and (now - _RELEVANT_EVENTS_CACHE[1] < _RELEVANT_EVENTS_CACHE_TTL):
+        return [dict(e) for e in _RELEVANT_EVENTS_CACHE[0]]
+
+    if now - _occasions_failed_at < OCCASIONS_RETRY_AFTER_SECONDS:
         return []
     try:
         from app.services.occasions import get_all_india_occasions
-        lat = merchant.get("latitude")
-        lng = merchant.get("longitude")
-        kwargs = {"merchant": None, "merchant_category": merchant.get("category", ""), "db": None}
+        merchant_dict = merchant or {}
+        lat = merchant_dict.get("latitude")
+        lng = merchant_dict.get("longitude")
+        kwargs = {"merchant": None, "merchant_category": merchant_dict.get("category", ""), "db": None}
         if lat is not None and lng is not None:
             kwargs.update(merchant_lat=float(lat), merchant_lng=float(lng))
         # merchant=None -> base festival rules only (no per-request Gemini call); the feed is cached
@@ -90,6 +102,8 @@ async def load_relevant_events(db, merchant: dict) -> List[dict]:
         if (d.get("severity") or "").upper() not in FORECAST_EVENT_SEVERITIES:
             continue
         relevant.append(d)
+
+    _RELEVANT_EVENTS_CACHE = (relevant, now)
     return relevant
 
 

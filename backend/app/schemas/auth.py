@@ -14,6 +14,8 @@ class SignupRequest(BaseModel):
     category: str = Field(..., min_length=2, max_length=50)  # e.g., Grocery, Cafe, Bakery, Apparel
     address: str = Field(..., min_length=3)
     phone: str = Field(..., min_length=10, max_length=15)
+    latitude: Optional[float] = Field(None, description="GPS Latitude")
+    longitude: Optional[float] = Field(None, description="GPS Longitude")
 
 class MerchantProfile(BaseModel):
     merchant_id: str
@@ -27,6 +29,15 @@ class MerchantProfile(BaseModel):
     longitude: Optional[float] = None
     coordinates: Optional[dict] = None
     created_at: datetime
+
+class MerchantProfileUpdate(BaseModel):
+    business_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    owner_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    category: Optional[str] = Field(None, min_length=2, max_length=50)
+    address: Optional[str] = Field(None, min_length=3)
+    phone: Optional[str] = Field(None, min_length=10, max_length=15)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class Token(BaseModel):
     access_token: str

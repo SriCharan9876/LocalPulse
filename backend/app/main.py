@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.core.llm_monitor import reset_gemini_rate_limit, has_gemini_rate_limit_occurred
 from app.db.session import connect_to_mongo, close_mongo_connection, db_manager, get_database
 from app.seed import seed_database
 from app.api.routes import (
@@ -45,7 +46,17 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Gemini-Rate-Limited", "X-Gemini-Quota-Exceeded"],
 )
+
+@app.middleware("http")
+async def gemini_rate_limit_monitor_middleware(request: Request, call_next):
+    reset_gemini_rate_limit()
+    response = await call_next(request)
+    if has_gemini_rate_limit_occurred():
+        response.headers["X-Gemini-Rate-Limited"] = "true"
+        response.headers["X-Gemini-Quota-Exceeded"] = "true"
+    return response
 
 # Root endpoint for platform health checks and discovery
 @app.get("/", tags=["Health"])

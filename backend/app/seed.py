@@ -530,119 +530,8 @@ async def seed_database(db, force: bool = False):
         })
     await db.campaign_redemptions.insert_many(redemptions)
 
-    # Seed Neighborhood Events Calendar for Indiranagar Hub
-    events_to_insert = [
-        {
-            "event_id": "event-001-diwali",
-            "title": "Diwali Festival Shopping & Gifting Rush",
-            "description": "Peak festive season shopping across Sarjapur / Bellandur corridor. Residents purchasing dry fruits, sweets, premium teas, and home essentials.",
-            "start_date": (today + timedelta(days=1)).strftime("%Y-%m-%d"),
-            "end_date": (today + timedelta(days=5)).strftime("%Y-%m-%d"),
-            "location_name": "Bellandur-Sarjapur Main Road Retail Corridor",
-            "coordinates": {"lat": 12.921500, "lng": 77.669200},
-            "category_impacts": [
-                {"category": "Traditional Sweets", "multiplier": 2.6, "projected_demand_change_pct": 160, "highlight_products": ["Kaju Katli", "Spicy Mixture"]},
-                {"category": "Beverages", "multiplier": 1.9, "projected_demand_change_pct": 90, "highlight_products": ["Red Label Tea", "Malabar Chai"]},
-                {"category": "Flour & Grains", "multiplier": 1.6, "projected_demand_change_pct": 60, "highlight_products": ["Chakki Atta", "Basmati Rice"]},
-            ],
-            "recommended_action": "Maintain buffer inventory of 50+ packs of Chakki Atta and sweet gift hampers. Run promotional bundle with nearby bakery.",
-            "severity": "HIGH",
-        },
-        {
-            "event_id": "event-002-payday",
-            "title": "Tech Corridor Payday Weekend Surge",
-            "description": "Monthly tech worker payroll credit cycle driving high discretionary evening footfall to local cafes, apparel boutiques, and gourmet grocery stores.",
-            "start_date": (today + timedelta(days=3)).strftime("%Y-%m-%d"),
-            "end_date": (today + timedelta(days=5)).strftime("%Y-%m-%d"),
-            "location_name": "EcoSpace & Outer Ring Rd Tech District",
-            "coordinates": {"lat": 12.923800, "lng": 77.667500},
-            "category_impacts": [
-                {"category": "Cafe & Bakery", "multiplier": 1.95, "projected_demand_change_pct": 95, "highlight_products": ["Artisan Sourdough", "Teacake Slices"]},
-                {"category": "Apparel", "multiplier": 1.8, "projected_demand_change_pct": 80, "highlight_products": ["Khadi Kurtas", "Ikat Dupattas"]},
-                {"category": "Beverages", "multiplier": 1.7, "projected_demand_change_pct": 70, "highlight_products": ["Specialty Chai Blend"]},
-            ],
-            "recommended_action": "Extend operating hours until 10:30 PM and offer bundled afternoon beverage vouchers with adjacent stores.",
-            "severity": "MEDIUM",
-        },
-        {
-            "event_id": "event-003-farmers",
-            "title": "Weekend Organic Farmers & Artisan Market",
-            "description": "Bi-weekly open-air market drawing over 2,500 health-conscious families for farm-fresh produce and artisan culinary items.",
-            "start_date": (today + timedelta(days=7)).strftime("%Y-%m-%d"),
-            "end_date": (today + timedelta(days=8)).strftime("%Y-%m-%d"),
-            "location_name": "Bellandur Green Grounds & Lake Promenade",
-            "coordinates": {"lat": 12.925500, "lng": 77.666000},
-            "category_impacts": [
-                {"category": "Fresh Fruits", "multiplier": 2.1, "projected_demand_change_pct": 110, "highlight_products": ["Hass Avocados", "Himachal Apples"]},
-                {"category": "Organic Vegetables", "multiplier": 2.0, "projected_demand_change_pct": 100, "highlight_products": ["Hydroponic Salad Greens"]},
-                {"category": "Organic Wellness", "multiplier": 1.7, "projected_demand_change_pct": 70, "highlight_products": ["Virgin Coconut Oil"]},
-            ],
-            "recommended_action": "Pre-pack twin avocados and 250g salad green boxes for quick cash-and-carry morning transactions.",
-            "severity": "HIGH",
-        },
-        {
-            "event_id": "event-004-langar",
-            "title": "Guru Nanak Jayanti Community Langar Drive",
-            "description": "Massive community kitchen meal distribution requiring bulk staples procurement.",
-            "start_date": (today + timedelta(days=15)).strftime("%Y-%m-%d"),
-            "end_date": (today + timedelta(days=15)).strftime("%Y-%m-%d"),
-            "location_name": "Community Hall & Gurudwara Center",
-            "coordinates": {"lat": 12.919200, "lng": 77.671500},
-            "category_impacts": [
-                {"category": "Flour & Grains", "multiplier": 2.3, "projected_demand_change_pct": 130, "highlight_products": ["Chakki Atta", "Basmati Rice"]},
-                {"category": "Edible Oils", "multiplier": 2.1, "projected_demand_change_pct": 110, "highlight_products": ["Sunflower Oil 1L"]},
-                {"category": "Spices & Seasoning", "multiplier": 1.8, "projected_demand_change_pct": 80, "highlight_products": ["Tata Salt 1kg"]},
-            ],
-            "recommended_action": "Place replenishment order 3 days prior with wholesale distributors to avoid stockouts on staple grains.",
-            "severity": "HIGH",
-        },
-        {
-            "event_id": "event-005-cricket",
-            "title": "Bengaluru Cricket Screening & Match Weekend",
-            "description": "High-attendance weekend sporting broadcast screening bringing sports fans and family groups to local neighborhood lounges.",
-            "start_date": (today + timedelta(days=20)).strftime("%Y-%m-%d"),
-            "end_date": (today + timedelta(days=21)).strftime("%Y-%m-%d"),
-            "location_name": "Bellandur Sports Arena & Lounges",
-            "coordinates": {"lat": 12.922800, "lng": 77.671000},
-            "category_impacts": [
-                {"category": "Savories", "multiplier": 2.25, "projected_demand_change_pct": 125, "highlight_products": ["Spicy Mixture", "Cookie Boxes"]},
-                {"category": "Beverages", "multiplier": 2.15, "projected_demand_change_pct": 115, "highlight_products": ["Chai Packs", "Cold Drinks"]},
-            ],
-            "recommended_action": "Stock counter-top impulse snack racks with 250g spicy mixtures and chilled milk/beverage cartons.",
-            "severity": "MEDIUM",
-        },
-        {
-            "event_id": "event-006-wellness",
-            "title": "Bengaluru Health & Ayurvedic Wellness Fair",
-            "description": "Community holistic wellness exhibition featuring certified herbalists, organic dietary specialists, and preventative health coaches.",
-            "start_date": (today + timedelta(days=23)).strftime("%Y-%m-%d"),
-            "end_date": (today + timedelta(days=24)).strftime("%Y-%m-%d"),
-            "location_name": "Kaikondrahalli Lake Recreation Grounds",
-            "coordinates": {"lat": 12.917800, "lng": 77.668200},
-            "category_impacts": [
-                {"category": "Ayurveda", "multiplier": 2.4, "projected_demand_change_pct": 140, "highlight_products": ["Amla Chyawanprash"]},
-                {"category": "Organic Wellness", "multiplier": 2.2, "projected_demand_change_pct": 120, "highlight_products": ["Cold-Pressed Virgin Coconut Oil"]},
-            ],
-            "recommended_action": "Highlight immunity benefits and display informative standees for Chyawanprash at storefront entrance.",
-            "severity": "MEDIUM",
-        },
-        {
-            "event_id": "event-007-carnival",
-            "title": "Local MSME & Street Food Carnival",
-            "description": "Pedestrian festival promoting small business shopping, street musicians, and neighborhood cross-store redemption vouchers.",
-            "start_date": (today + timedelta(days=28)).strftime("%Y-%m-%d"),
-            "end_date": (today + timedelta(days=30)).strftime("%Y-%m-%d"),
-            "location_name": "Central Retail Boulevard",
-            "coordinates": {"lat": 12.921200, "lng": 77.668500},
-            "category_impacts": [
-                {"category": "All Categories", "multiplier": 1.85, "projected_demand_change_pct": 85, "highlight_products": ["All Catalog Products"]},
-            ],
-            "recommended_action": "Set up active collaboration combo bundles with neighboring cafes and apparel shops to capture cross-traffic.",
-            "severity": "HIGH",
-        },
-    ]
-    await db.neighborhood_events.insert_many(events_to_insert)
-
+    # All-India occasions & festivals are loaded dynamically from live Google Calendar & API feeds.
+    # No synthetic neighborhood events seeded into database.
     return {
         "status": "success",
         "merchants_seeded": len(merchants_to_insert),
@@ -650,5 +539,5 @@ async def seed_database(db, force: bool = False):
         "sales_records_seeded": len(sales_to_insert),
         "collaborations_seeded": 1,
         "campaigns_seeded": 1,
-        "neighborhood_events_seeded": len(events_to_insert),
+        "events_source": "Live Google Calendar All-India Feed",
     }

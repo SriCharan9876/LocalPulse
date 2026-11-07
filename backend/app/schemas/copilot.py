@@ -65,6 +65,7 @@ class CopilotChatResponse(BaseModel):
     provider_info: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     chart: Optional[ChartData] = None
+    llm_rate_limited: Optional[bool] = False
 
 class ActionConfirmationRequest(BaseModel):
     action_type: str

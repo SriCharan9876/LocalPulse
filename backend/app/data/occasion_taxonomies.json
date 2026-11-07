@@ -1,0 +1,248 @@
+{
+  "version": "1.0.0",
+  "description": "Retail demand intelligence taxonomy for Indian festivals, national observances, and cultural events",
+  "vertical_priors": {
+    "Kirana & General Store": 1.45,
+    "Bakery & Confectionery": 1.85,
+    "Sweets & Snacks": 2.20,
+    "Dairy & Beverages": 1.60,
+    "Apparel & Fashion": 1.70,
+    "Pharmacy & Wellness": 1.15,
+    "Electronics & Appliances": 1.30,
+    "General": 1.35
+  },
+  "event_taxonomies": [
+    {
+      "id": "diwali_season",
+      "keywords": ["diwali", "deepavali", "naraka chaturdasi", "dhanteras", "choti diwali", "bhai dooj"],
+      "severity": "HIGH",
+      "action_template": "Procure 2.0x-2.5x festive inventory 5-7 days ahead. Set up an express Paytm Soundbox QR checkout line for evening peak shopping surges.",
+      "category_rules": [
+        {
+          "category": "Sweets & Confectionery",
+          "target_verticals": ["Kirana & General Store", "Bakery & Confectionery", "Sweets & Snacks"],
+          "base_multiplier": 2.6,
+          "base_lift_pct": 160,
+          "product_keywords": ["sweet", "mithai", "ladoo", "katli", "jamun", "halwa", "peda"]
+        },
+        {
+          "category": "Gifting & Dry Fruits",
+          "target_verticals": ["Kirana & General Store", "Sweets & Snacks", "General"],
+          "base_multiplier": 2.4,
+          "base_lift_pct": 140,
+          "product_keywords": ["dry fruit", "kaju", "badam", "cashew", "almond", "pista", "gift", "box", "hamper"]
+        },
+        {
+          "category": "Puja & Home Essentials",
+          "target_verticals": ["Kirana & General Store", "General"],
+          "base_multiplier": 2.1,
+          "base_lift_pct": 110,
+          "product_keywords": ["oil", "ghee", "diya", "agarbatti", "camphor", "candle", "puja", "pooja"]
+        },
+        {
+          "category": "Festive Apparel & Ethnic Wear",
+          "target_verticals": ["Apparel & Fashion"],
+          "base_multiplier": 2.3,
+          "base_lift_pct": 130,
+          "product_keywords": ["kurta", "saree", "ethnic", "silk", "dress", "shirt"]
+        }
+      ]
+    },
+    {
+      "id": "holi_festival",
+      "keywords": ["holi", "dhuleti", "choti holi", "holika dahan"],
+      "severity": "HIGH",
+      "action_template": "Wrap Paytm Soundbox & POS QR in protective transparent film against water/gulal. Stack festival specials and cold beverages near billing counter.",
+      "category_rules": [
+        {
+          "category": "Festival Sweets & Snacks",
+          "target_verticals": ["Kirana & General Store", "Bakery & Confectionery", "Sweets & Snacks"],
+          "base_multiplier": 2.3,
+          "base_lift_pct": 130,
+          "product_keywords": ["gujiya", "mathri", "namkeen", "snack", "sweet", "mixture"]
+        },
+        {
+          "category": "Beverages & Dairy",
+          "target_verticals": ["Kirana & General Store", "Dairy & Beverages"],
+          "base_multiplier": 2.2,
+          "base_lift_pct": 120,
+          "product_keywords": ["thandai", "milk", "syrup", "juice", "beverage", "soda", "cold drink"]
+        },
+        {
+          "category": "Personal Care & Skincare",
+          "target_verticals": ["Pharmacy & Wellness", "Kirana & General Store"],
+          "base_multiplier": 1.7,
+          "base_lift_pct": 70,
+          "product_keywords": ["oil", "coconut oil", "soap", "face wash", "moisturizer", "sunscreen"]
+        }
+      ]
+    },
+    {
+      "id": "eid_ramadan",
+      "keywords": ["eid", "ramadan", "ramzan", "id-ul-fitr", "id-ul-zuha", "bakrid", "milad un nabi"],
+      "severity": "HIGH",
+      "action_template": "Keep extra buffer of vermicelli, dates, and dairy pouches. Ensure QR soundbox is fully charged for evening iftar checkout rushes.",
+      "category_rules": [
+        {
+          "category": "Bakery, Dairy & Vermicelli",
+          "target_verticals": ["Kirana & General Store", "Bakery & Confectionery", "Dairy & Beverages"],
+          "base_multiplier": 2.5,
+          "base_lift_pct": 150,
+          "product_keywords": ["vermicelli", "sewai", "sevaya", "milk", "condensed milk", "ghee", "cream"]
+        },
+        {
+          "category": "Dry Fruits & Dates",
+          "target_verticals": ["Kirana & General Store", "Sweets & Snacks"],
+          "base_multiplier": 2.4,
+          "base_lift_pct": 140,
+          "product_keywords": ["dates", "khajoor", "pista", "badam", "cashew", "walnut"]
+        },
+        {
+          "category": "Fragrance & Apparel",
+          "target_verticals": ["Apparel & Fashion", "Pharmacy & Wellness"],
+          "base_multiplier": 2.1,
+          "base_lift_pct": 110,
+          "product_keywords": ["kurta", "perfume", "attar", "fragrance"]
+        }
+      ]
+    },
+    {
+      "id": "dussehra_navratri",
+      "keywords": ["dussehra", "dasara", "navratri", "durga puja", "maha saptami", "maha ashtami", "vijayadashami"],
+      "severity": "HIGH",
+      "action_template": "Create a dedicated Navratri Vrat & Puja display at front aisle. Stock high quantities of fasting staples and puja samagri.",
+      "category_rules": [
+        {
+          "category": "Fasting Staples (Vrat Food)",
+          "target_verticals": ["Kirana & General Store"],
+          "base_multiplier": 2.4,
+          "base_lift_pct": 140,
+          "product_keywords": ["sabudana", "atta", "flour", "singhara", "rock salt", "sendha namak", "makhana"]
+        },
+        {
+          "category": "Puja Essentials & Sweets",
+          "target_verticals": ["Kirana & General Store", "Sweets & Snacks"],
+          "base_multiplier": 2.2,
+          "base_lift_pct": 120,
+          "product_keywords": ["camphor", "agarbatti", "ghee", "ladoo", "mithai", "coconut"]
+        },
+        {
+          "category": "Ethnic Apparel & Festive Wear",
+          "target_verticals": ["Apparel & Fashion"],
+          "base_multiplier": 2.1,
+          "base_lift_pct": 110,
+          "product_keywords": ["chaniya choli", "kurta", "dupatta", "dress", "saree"]
+        }
+      ]
+    },
+    {
+      "id": "ganesh_chaturthi",
+      "keywords": ["ganesh chaturthi", "vinayaka chavithi", "anant chaturdashi"],
+      "severity": "HIGH",
+      "action_template": "Pre-pack Modak sets in ₹100, ₹200, and ₹500 packs for fast QR checkout to eliminate queue congestion.",
+      "category_rules": [
+        {
+          "category": "Modaks & Festive Sweets",
+          "target_verticals": ["Bakery & Confectionery", "Sweets & Snacks", "Kirana & General Store"],
+          "base_multiplier": 2.6,
+          "base_lift_pct": 160,
+          "product_keywords": ["modak", "ladoo", "peda", "mithai", "sweet"]
+        },
+        {
+          "category": "Puja Samagri & Fresh Ghee",
+          "target_verticals": ["Kirana & General Store"],
+          "base_multiplier": 2.2,
+          "base_lift_pct": 120,
+          "product_keywords": ["ghee", "agarbatti", "camphor", "oil", "jaggery", "flour"]
+        }
+      ]
+    },
+    {
+      "id": "raksha_bandhan",
+      "keywords": ["raksha bandhan", "rakhi", "bhai duj", "bhaidooj"],
+      "severity": "HIGH",
+      "action_template": "Set up a standalone Rakhi & Sweets express billing queue with visible Paytm QR standee at storefront.",
+      "category_rules": [
+        {
+          "category": "Chocolates & Gift Boxes",
+          "target_verticals": ["Kirana & General Store", "Bakery & Confectionery", "Sweets & Snacks"],
+          "base_multiplier": 2.6,
+          "base_lift_pct": 160,
+          "product_keywords": ["chocolate", "cadbury", "celebration", "gift", "box", "mithai", "katli"]
+        },
+        {
+          "category": "Rakhis & Greeting Hampers",
+          "target_verticals": ["Kirana & General Store", "General"],
+          "base_multiplier": 2.4,
+          "base_lift_pct": 140,
+          "product_keywords": ["rakhi", "greeting", "hamper", "envelope", "gift pack"]
+        }
+      ]
+    },
+    {
+      "id": "harvest_festivals",
+      "keywords": ["pongal", "makar sankranti", "lohri", "bihu", "uttarayan", "onam", "vishu", "baisakhi", "ugadi", "gudi padwa"],
+      "severity": "HIGH",
+      "action_template": "Bundle regional grains, jaggery, and sesame sweets in ready combo bags. Highlight festive staples near entrance.",
+      "category_rules": [
+        {
+          "category": "Traditional Harvest Staples & Sweets",
+          "target_verticals": ["Kirana & General Store", "Sweets & Snacks"],
+          "base_multiplier": 2.3,
+          "base_lift_pct": 130,
+          "product_keywords": ["jaggery", "gud", "til", "sesame", "gajak", "chikki", "rice", "dal", "flour", "payasam"]
+        },
+        {
+          "category": "Festive Cooking Dairy & Ghee",
+          "target_verticals": ["Kirana & General Store", "Dairy & Beverages"],
+          "base_multiplier": 2.0,
+          "base_lift_pct": 100,
+          "product_keywords": ["ghee", "milk", "butter", "oil"]
+        }
+      ]
+    },
+    {
+      "id": "christmas_new_year",
+      "keywords": ["christmas", "new year", "xmas", "new year's eve"],
+      "severity": "HIGH",
+      "action_template": "Keep cold storage loaded with beverages. Display plum cakes, chocolates, and party multipacks in prominent front racks.",
+      "category_rules": [
+        {
+          "category": "Bakery, Cakes & Confectionery",
+          "target_verticals": ["Bakery & Confectionery", "Kirana & General Store"],
+          "base_multiplier": 2.5,
+          "base_lift_pct": 150,
+          "product_keywords": ["cake", "plum cake", "cookie", "biscuit", "chocolate", "pastry"]
+        },
+        {
+          "category": "Party Snacks & Beverages",
+          "target_verticals": ["Kirana & General Store", "Dairy & Beverages"],
+          "base_multiplier": 2.2,
+          "base_lift_pct": 120,
+          "product_keywords": ["juice", "beverage", "soft drink", "crisp", "chips", "namkeen", "snack"]
+        }
+      ]
+    },
+    {
+      "id": "national_holidays",
+      "keywords": ["republic day", "independence day", "gandhi jayanti"],
+      "severity": "MEDIUM",
+      "action_template": "Prepare for morning neighborhood footfall after community flag-hoisting ceremonies and family gatherings.",
+      "category_rules": [
+        {
+          "category": "Snacks & Refreshments",
+          "target_verticals": ["Kirana & General Store", "Bakery & Confectionery", "Dairy & Beverages"],
+          "base_multiplier": 1.7,
+          "base_lift_pct": 70,
+          "product_keywords": ["juice", "water", "snack", "samosa", "biscuit", "sweet", "tea"]
+        }
+      ]
+    }
+  ],
+  "default_rule": {
+    "severity": "LOW",
+    "base_multiplier": 1.25,
+    "base_lift_pct": 25,
+    "action_template": "Promote everyday essentials and high-velocity convenience products during local neighborhood observance."
+  }
+}

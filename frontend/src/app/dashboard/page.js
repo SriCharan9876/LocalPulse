@@ -185,23 +185,6 @@ export default function DashboardPage() {
             </Link>
           </div>
         </div>
-
-        {/* Horizontal Category Pill Tabs (Directly from Dribbble layout) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {['Overview', 'Operations', 'Demand Pulse', 'Replenishment', 'Promotions'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                activeTab === tab
-                  ? 'bg-[#16181a] text-white shadow-xs font-bold'
-                  : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 shadow-2xs'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* 3 HERO METRIC CARDS (Direct Dribbble Shot Reproduction) */}
@@ -254,11 +237,10 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={i}
-                    className={`flex-1 h-7 rounded-full transition-all duration-300 ${
-                      isFilled
-                        ? 'bg-[#16181a]'
-                        : 'border border-dashed border-stone-300 bg-transparent'
-                    }`}
+                    className={`flex-1 h-7 rounded-full transition-all duration-300 ${isFilled
+                      ? 'bg-[#16181a]'
+                      : 'border border-dashed border-stone-300 bg-transparent'
+                      }`}
                   />
                 );
               })}
@@ -301,11 +283,10 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={i}
-                    className={`flex-1 h-7 rounded-full transition-all duration-300 ${
-                      isFilled
-                        ? 'bg-[#16181a]'
-                        : 'border border-dashed border-[#16181a]/40 bg-transparent'
-                    }`}
+                    className={`flex-1 h-7 rounded-full transition-all duration-300 ${isFilled
+                      ? 'bg-[#16181a]'
+                      : 'border border-dashed border-[#16181a]/40 bg-transparent'
+                      }`}
                   />
                 );
               })}
@@ -537,8 +518,8 @@ export default function DashboardPage() {
               const badgeStyle = isRestock
                 ? 'bg-[#fbe8e4] text-[#a43b27] border-[#f3c5bd]'
                 : isClearance
-                ? 'bg-[#e0fd53]/30 text-[#16181a] border-[#e0fd53]'
-                : 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                  ? 'bg-[#e0fd53]/30 text-[#16181a] border-[#e0fd53]'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-200';
 
               const IconComponent = isRestock ? AlertTriangle : isClearance ? Tag : Percent;
               const actionLabel = isRestock ? 'Restock Item' : isClearance ? 'Launch Offer' : 'Apply Promo';
@@ -680,11 +661,12 @@ export default function DashboardPage() {
                     </td>
                     <td className="py-3 text-right pr-2">
                       <button
+                        type="button"
                         onClick={() => {
                           setSelectedStockItem(item);
                           setRestockQty(item.recommended_reorder || 20);
                         }}
-                        className="px-3.5 py-1 rounded-full bg-white hover:bg-[#16181a] hover:text-white text-stone-800 font-semibold text-[11px] transition-all border border-stone-200/90 shadow-2xs"
+                        className="px-3.5 py-1 rounded-full bg-white hover:bg-[#16181a] hover:text-white text-stone-800 font-semibold text-[11px] transition-all border border-stone-200/90 shadow-2xs cursor-pointer"
                       >
                         Restock (+{item.recommended_reorder})
                       </button>

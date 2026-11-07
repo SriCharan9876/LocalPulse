@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import {
   ChevronDown,
@@ -151,8 +152,20 @@ export default function Header({ title, subtitle }) {
                 )}
               </div>
 
-              {/* Reset Database Quick Action inside dropdown */}
-              <div className="pt-2 px-1 border-t border-stone-100">
+              {/* Store Profile Quick Action inside dropdown */}
+              <div className="pt-2 px-1 border-t border-stone-100 space-y-1">
+                <Link
+                  href="/profile"
+                  onClick={() => setDropdownOpen(false)}
+                  className="w-full text-left px-3 py-2 rounded-2xl bg-stone-50 hover:bg-stone-100 text-stone-800 text-[11px] font-bold flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Store className="w-3.5 h-3.5 text-stone-600" />
+                    <span>My Store Profile & Map</span>
+                  </div>
+                  <span className="text-[9.5px] uppercase font-bold text-stone-400">View</span>
+                </Link>
+
                 <button
                   type="button"
                   onClick={() => {

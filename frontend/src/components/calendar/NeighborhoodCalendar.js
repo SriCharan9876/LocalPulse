@@ -11,7 +11,8 @@ import {
   AlertCircle,
   Sparkles,
   ArrowRight,
-  ShieldAlert
+  ShieldAlert,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function NeighborhoodCalendar({
@@ -20,28 +21,19 @@ export default function NeighborhoodCalendar({
   onSelectEvent = null,
   onPlanEvent = null,
 }) {
-  // Calendar base state (Dynamic based on current date or events)
+  // Calendar base state: current month & year by default
   const today = new Date();
-  const [currentYear, setCurrentYear] = useState(() => {
-    if (events && events.length > 0 && events[0].start_date) {
-      const yr = parseInt(events[0].start_date.split('-')[0], 10);
-      if (!isNaN(yr)) return yr;
-    }
-    return today.getFullYear();
-  });
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    if (events && events.length > 0 && events[0].start_date) {
-      const mo = parseInt(events[0].start_date.split('-')[1], 10) - 1;
-      if (!isNaN(mo) && mo >= 0 && mo <= 11) return mo;
-    }
-    return today.getMonth();
-  });
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState(null);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
+
+  const isCurrentCalendarMonth =
+    currentYear === today.getFullYear() && currentMonth === today.getMonth();
 
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
@@ -63,11 +55,17 @@ export default function NeighborhoodCalendar({
     setSelectedDay(null);
   };
 
-  // Generate calendar grid days for current month
+  const handleResetToCurrentMonth = () => {
+    setCurrentYear(today.getFullYear());
+    setCurrentMonth(today.getMonth());
+    setSelectedDay(null);
+  };
+
+  // Generate calendar grid days for currently selected month
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
 
-  // Helper to check if event occurs on a day
+  // Helper to check if event occurs on a specific day in the selected month
   const getEventsForDay = (dayNum) => {
     const formattedDayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
     return events.filter((ev) => {
@@ -78,15 +76,30 @@ export default function NeighborhoodCalendar({
     });
   };
 
-  // Filtered event list
+  // Helper to get all events that fall into or overlap the currently selected month
+  const getEventsForMonth = () => {
+    const monthPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+    const monthStart = `${monthPrefix}-01`;
+    const monthEnd = `${monthPrefix}-${String(daysInMonth).padStart(2, '0')}`;
+    return events.filter((ev) => {
+      if (!ev.start_date) return false;
+      const start = ev.start_date;
+      const end = ev.end_date || ev.start_date;
+      return start <= monthEnd && end >= monthStart;
+    });
+  };
+
+  const monthEvents = getEventsForMonth();
+
+  // Filtered event list: specific day if clicked, otherwise all events in the selected month
   const displayedEvents = selectedDay
     ? getEventsForDay(selectedDay)
-    : events;
+    : monthEvents;
 
   return (
     <div className="bg-white rounded-[28px] border border-stone-200/90 shadow-[0_4px_24px_rgba(20,24,20,0.04)] p-5 md:p-6 flex flex-col space-y-5">
       {/* Calendar Header with Month Navigation */}
-      <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-stone-100">
         <div>
           <h3 className="text-base font-extrabold text-[#16181a] tracking-tight flex items-center gap-2">
             <CalendarIcon className="w-4 h-4 text-[#16181a]" />
@@ -97,24 +110,37 @@ export default function NeighborhoodCalendar({
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-[#f7f8f4] border border-stone-200/90 rounded-full px-2 py-1 shadow-2xs">
-          <button
-            onClick={handlePrevMonth}
-            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-stone-200/70 text-stone-700 transition-colors cursor-pointer"
-            title="Previous month"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-          <span className="text-xs font-bold text-[#16181a] px-2 min-w-[110px] text-center">
-            {monthNames[currentMonth]} {currentYear}
-          </span>
-          <button
-            onClick={handleNextMonth}
-            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-stone-200/70 text-stone-700 transition-colors cursor-pointer"
-            title="Next month"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {!isCurrentCalendarMonth && (
+            <button
+              onClick={handleResetToCurrentMonth}
+              className="text-[10px] font-bold text-stone-600 hover:text-[#16181a] px-2.5 py-1 rounded-full bg-[#f7f8f4] hover:bg-stone-200/70 border border-stone-200/90 cursor-pointer flex items-center gap-1 transition-colors"
+              title="Jump back to current month"
+            >
+              <RotateCcw className="w-2.5 h-2.5" />
+              <span>Current Month</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-1 bg-[#f7f8f4] border border-stone-200/90 rounded-full px-2 py-1 shadow-2xs">
+            <button
+              onClick={handlePrevMonth}
+              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-stone-200/70 text-stone-700 transition-colors cursor-pointer"
+              title="Previous month"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-xs font-bold text-[#16181a] px-2 min-w-[110px] text-center">
+              {monthNames[currentMonth]} {currentYear}
+            </span>
+            <button
+              onClick={handleNextMonth}
+              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-stone-200/70 text-stone-700 transition-colors cursor-pointer"
+              title="Next month"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -133,7 +159,7 @@ export default function NeighborhoodCalendar({
       <div className="grid grid-cols-7 gap-1">
         {/* Empty padding days */}
         {Array.from({ length: firstDayIndex }).map((_, i) => (
-          <div key={`empty-${i}`} className="h-10 rounded-xl" />
+          <div key={`empty-${i}`} className="h-11 rounded-xl" />
         ))}
 
         {/* Days of current month */}
@@ -143,36 +169,36 @@ export default function NeighborhoodCalendar({
           const hasEvents = dayEvents.length > 0;
           const isSelected = selectedDay === dayNum;
           const hasHighSeverity = dayEvents.some((e) => e.severity === 'HIGH');
+          const isToday = isCurrentCalendarMonth && dayNum === today.getDate();
 
           return (
             <button
               key={`day-${dayNum}`}
               onClick={() => setSelectedDay(isSelected ? null : dayNum)}
-              className={`h-11 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer relative ${
-                isSelected
-                  ? 'bg-[#16181a] text-white shadow-xs font-extrabold'
+              className={`h-11 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer relative ${isSelected
+                  ? 'bg-[#16181a] text-white shadow-xs font-extrabold ring-2 ring-[#e0fd53]/40'
                   : hasEvents
-                  ? 'bg-[#f7f8f4] hover:bg-stone-100 text-[#16181a] font-bold border border-stone-200/80'
-                  : 'hover:bg-stone-50 text-stone-600'
-              }`}
+                    ? 'bg-[#f7f8f4] hover:bg-stone-100 text-[#16181a] font-bold border border-stone-200/80'
+                    : 'hover:bg-stone-50 text-stone-600'
+                }`}
             >
-              <span className="text-xs">{dayNum}</span>
+              <span className={`text-xs ${isToday && !isSelected ? 'font-black text-[#16181a] underline decoration-[#e0fd53] decoration-2' : ''}`}>
+                {dayNum}
+              </span>
               {hasEvents && (
                 <div className="flex items-center gap-0.5 mt-0.5">
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isSelected
+                    className={`w-1.5 h-1.5 rounded-full ${isSelected
                         ? 'bg-[#e0fd53]'
                         : hasHighSeverity
-                        ? 'bg-[#c25e4e]'
-                        : 'bg-[#16181a]'
-                    }`}
+                          ? 'bg-[#c25e4e]'
+                          : 'bg-[#16181a]'
+                      }`}
                   />
                   {dayEvents.length > 1 && (
                     <span
-                      className={`text-[8px] font-bold ${
-                        isSelected ? 'text-[#e0fd53]' : 'text-stone-500'
-                      }`}
+                      className={`text-[8px] font-bold ${isSelected ? 'text-[#e0fd53]' : 'text-stone-500'
+                        }`}
                     >
                       {dayEvents.length}
                     </span>
@@ -188,13 +214,13 @@ export default function NeighborhoodCalendar({
       {selectedDay && (
         <div className="flex items-center justify-between px-3 py-1.5 rounded-full bg-[#f7f8f4] border border-stone-200/90 text-xs">
           <span className="font-semibold text-stone-700">
-            Filtering events for {monthNames[currentMonth]} {selectedDay}, {currentYear}
+            Filtering for {monthNames[currentMonth]} {selectedDay}, {currentYear}
           </span>
           <button
             onClick={() => setSelectedDay(null)}
             className="text-[11px] font-bold text-[#16181a] hover:underline cursor-pointer"
           >
-            Show All Events
+            Show All in {monthNames[currentMonth]}
           </button>
         </div>
       )}
@@ -202,14 +228,22 @@ export default function NeighborhoodCalendar({
       {/* Event Cards Stream */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between text-xs font-bold text-stone-500 uppercase tracking-widest px-1">
-          <span>Occasions & Festivals ({displayedEvents.length})</span>
+          <span>
+            {selectedDay
+              ? `Events on ${monthNames[currentMonth]} ${selectedDay} (${displayedEvents.length})`
+              : `Occasions in ${monthNames[currentMonth]} ${currentYear} (${displayedEvents.length})`}
+          </span>
           <span className="text-[11px] text-stone-400 font-normal">Click occasion to view retail prep</span>
         </div>
 
         {displayedEvents.length === 0 ? (
           <div className="p-8 text-center rounded-2xl bg-[#fbfbf9] border border-dashed border-stone-200">
             <CalendarIcon className="w-6 h-6 text-stone-300 mx-auto mb-2" />
-            <p className="text-xs text-stone-500 font-medium">No major retail occasions scheduled for this day.</p>
+            <p className="text-xs text-stone-500 font-medium">
+              {selectedDay
+                ? `No retail occasions scheduled for ${monthNames[currentMonth]} ${selectedDay}.`
+                : `No major retail occasions scheduled in ${monthNames[currentMonth]} ${currentYear}.`}
+            </p>
           </div>
         ) : (
           displayedEvents.map((ev) => {
@@ -218,42 +252,38 @@ export default function NeighborhoodCalendar({
               <div
                 key={ev.event_id}
                 onClick={() => onSelectEvent && onSelectEvent(ev.event_id)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-                  isSelected
+                className={`p-4 rounded-2xl border transition-all cursor-pointer ${isSelected
                     ? 'bg-[#16181a] text-white border-stone-800 shadow-md ring-2 ring-[#e0fd53]/40'
                     : 'bg-white hover:bg-[#fafaf7] border-stone-200/90 text-stone-800 shadow-2xs'
-                }`}
+                  }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                        ev.severity === 'HIGH'
+                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${ev.severity === 'HIGH'
                           ? isSelected
                             ? 'bg-[#e0fd53] text-[#16181a]'
                             : 'bg-[#fbe8e4] text-[#a43b27] border border-[#f3c5bd]'
                           : isSelected
-                          ? 'bg-stone-700 text-stone-200'
-                          : 'bg-[#fbf4e6] text-[#8c5208] border border-[#f3ddb6]'
-                      }`}
+                            ? 'bg-stone-700 text-stone-200'
+                            : 'bg-[#fbf4e6] text-[#8c5208] border border-[#f3ddb6]'
+                        }`}
                     >
                       {ev.severity} IMPACT
                     </span>
                     {ev.source && (
                       <span
-                        className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${
-                          isSelected
+                        className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${isSelected
                             ? 'bg-stone-800 text-stone-300 border-stone-700'
                             : 'bg-stone-50 text-stone-600 border-stone-200/90'
-                        }`}
+                          }`}
                       >
                         {ev.source.replace(' (100% Free Live)', '').replace(' (Active)', '')}
                       </span>
                     )}
                     <span
-                      className={`text-xs font-bold ${
-                        isSelected ? 'text-stone-300' : 'text-stone-500'
-                      }`}
+                      className={`text-xs font-bold ${isSelected ? 'text-stone-300' : 'text-stone-500'
+                        }`}
                     >
                       {ev.start_date === ev.end_date ? ev.start_date : `${ev.start_date} → ${ev.end_date}`}
                     </span>
@@ -261,17 +291,15 @@ export default function NeighborhoodCalendar({
                 </div>
 
                 <h4
-                  className={`text-sm font-extrabold tracking-tight mb-1 ${
-                    isSelected ? 'text-white' : 'text-[#16181a]'
-                  }`}
+                  className={`text-sm font-extrabold tracking-tight mb-1 ${isSelected ? 'text-white' : 'text-[#16181a]'
+                    }`}
                 >
                   {ev.title}
                 </h4>
 
                 <p
-                  className={`text-xs leading-relaxed mb-3 ${
-                    isSelected ? 'text-stone-300' : 'text-stone-600'
-                  }`}
+                  className={`text-xs leading-relaxed mb-3 ${isSelected ? 'text-stone-300' : 'text-stone-600'
+                    }`}
                 >
                   {ev.description}
                 </p>
@@ -281,11 +309,10 @@ export default function NeighborhoodCalendar({
                   {ev.category_impacts?.map((imp, idx) => (
                     <span
                       key={idx}
-                      className={`text-[10.5px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 ${
-                        isSelected
+                      className={`text-[10.5px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 ${isSelected
                           ? 'bg-stone-800 text-[#e0fd53] border border-stone-700'
                           : 'bg-[#edece4] text-[#16181a] border border-stone-300/80'
-                      }`}
+                        }`}
                     >
                       <TrendingUp className="w-3 h-3" />
                       <span>{imp.category}: +{imp.projected_demand_change_pct}%</span>
@@ -295,16 +322,14 @@ export default function NeighborhoodCalendar({
 
                 {/* Actionable Recommendation */}
                 <div
-                  className={`p-2.5 rounded-xl text-[11px] leading-relaxed flex items-start gap-2 ${
-                    isSelected
+                  className={`p-2.5 rounded-xl text-[11px] leading-relaxed flex items-start gap-2 ${isSelected
                       ? 'bg-stone-800/90 text-stone-200 border border-stone-700'
                       : 'bg-[#f7f8f4] text-stone-700 border border-stone-200/80'
-                  }`}
+                    }`}
                 >
                   <Sparkles
-                    className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${
-                      isSelected ? 'text-[#e0fd53]' : 'text-[#16181a]'
-                    }`}
+                    className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isSelected ? 'text-[#e0fd53]' : 'text-[#16181a]'
+                      }`}
                   />
                   <div>
                     <span className="font-bold">Inventory Prep: </span>
@@ -320,11 +345,10 @@ export default function NeighborhoodCalendar({
                       e.stopPropagation();
                       onPlanEvent(ev);
                     }}
-                    className={`mt-2.5 w-full py-2 rounded-full text-[11px] font-bold transition-colors cursor-pointer ${
-                      isSelected
+                    className={`mt-2.5 w-full py-2 rounded-full text-[11px] font-bold transition-colors cursor-pointer ${isSelected
                         ? 'bg-[#e0fd53] text-[#16181a] hover:bg-[#d6f447]'
                         : 'bg-[#16181a] text-white hover:bg-stone-800'
-                    }`}
+                      }`}
                   >
                     Get action plan →
                   </button>

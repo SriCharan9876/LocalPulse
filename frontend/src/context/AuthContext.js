@@ -79,6 +79,13 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateProfile = (updatedProfile) => {
+    setMerchant(updatedProfile);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('localpulse_merchant', JSON.stringify(updatedProfile));
+    }
+  };
+
   const logout = () => {
     clearAuthSession();
     setToken(null);
@@ -96,6 +103,7 @@ export function AuthProvider({ children }) {
         login,
         signup,
         switchDemoMerchant,
+        updateProfile,
         logout,
         isAuthenticated: !!token,
       }}

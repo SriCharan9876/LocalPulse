@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import AppLayout from '@/components/layout/AppLayout';
 import Badge from '@/components/ui/Badge';
+import Modal from '@/components/ui/Modal';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { convertBlobTo16kWav } from '@/lib/audioUtils';
@@ -39,49 +40,91 @@ import {
   Volume2,
   Globe,
   SlidersHorizontal,
+  MapPin,
+  Calendar,
+  Compass,
+  Lightbulb,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 // Categorized operational queries grounded in actual backend capabilities
 const SUGGESTED_CATEGORIES = [
   {
-    category: 'Restock & Inventory',
+    category: 'Map & Stores',
+    badge: 'Spatial',
+    icon: MapPin,
+    description: 'Hyper-local merchants, distance radii, and neighborhood festival calendars',
+    queries: [
+      'Who are the closest stores near me within 1 km?',
+      'What festivals and events are coming up on the local calendar?',
+      'Find nearby grocery stores within 2 km',
+    ],
+  },
+  {
+    category: 'Collaborations',
+    badge: 'Bundles',
+    icon: Handshake,
+    description: 'Find non-competing partner stores and propose joint combos',
+    queries: [
+      'Discover collaboration partners for a joint breakfast bundle',
+      'Propose a joint combo bundle with Krishna Bakery',
+      'Which nearby store would be best to bundle tea and snacks?',
+    ],
+  },
+  {
+    category: 'Forecasting',
+    badge: 'AI Projections',
+    icon: TrendingUp,
+    description: '7-day forward demand projections, festival surges, and stockout alerts',
+    queries: [
+      'Show 7-day demand forecast and stockout risks',
+      'Prepare an action plan for the next upcoming festival',
+      'Which products have high stockout risk next week?',
+    ],
+  },
+  {
+    category: 'Restock & Loss',
+    badge: 'Inventory',
     icon: Package,
+    description: 'Safety stock deficits, supplier replenishment, and damage logging',
     queries: [
       'Which products are running low and need restocking?',
-      'Restock top low-stock item by 30 units',
+      'Record 5 units of Bread damaged as loss',
+      'Audit stock levels for dairy and edible oils',
     ],
   },
   {
-    category: 'Discount & Clearance',
-    icon: Percent,
-    queries: [
-      'Recommend clearance discounts for excess stock',
-      'Draft a weekend discount campaign with 12% off',
-    ],
-  },
-  {
-    category: 'Analytics & Sales',
+    category: 'Sales Analytics',
+    badge: 'Telemetry',
     icon: BarChart3,
+    description: 'Audited sales ranking, revenue telemetry, and SKU comparisons',
     queries: [
+      'What are my top selling products this week?',
+      'How much did I sell yesterday?',
       'Analyze performance of our top product over the last 14 days',
-      'Give me a full business health overview',
     ],
   },
   {
-    category: 'Catalog & Campaigns',
+    category: 'Campaigns & Catalog',
+    badge: 'Growth',
     icon: PlusCircle,
+    description: 'Margin-safe clearance discounts, promotional campaigns, and new SKUs',
     queries: [
-      'Add product Greek Yogurt category Dairy cost 45 selling 75 stock 30',
-      'End active promotional campaign',
+      'Suggest one campaign to start to improve store productivity',
+      'Recommend clearance discounts for excess stock',
+      'Draft a 10% promotional offer for the weekend',
     ],
   },
 ];
 
-// Inline markdown parser: handles **bold**, `code`, *italics*
-function InlineText({ text }) {
+// Inline markdown parser: handles **bold**, `code`, *italics*, and clickable quoted queries
+function InlineText({ text, onSelectQuery }) {
   if (!text) return null;
   const tokens = [];
-  const regex = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g;
+  // Match bold (**...**), code (`...`), italics (*...*), or quoted prompts ("...")
+  const regex = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*|"[^"\n]{7,}")/g;
   let lastIndex = 0;
   let match;
 
@@ -96,6 +139,8 @@ function InlineText({ text }) {
       tokens.push({ type: 'code', val: raw.slice(1, -1) });
     } else if (raw.startsWith('*') && raw.endsWith('*')) {
       tokens.push({ type: 'italic', val: raw.slice(1, -1) });
+    } else if (raw.startsWith('"') && raw.endsWith('"')) {
+      tokens.push({ type: 'quote', val: raw.slice(1, -1) });
     }
     lastIndex = regex.lastIndex;
   }
@@ -131,6 +176,23 @@ function InlineText({ text }) {
             </em>
           );
         }
+        if (token.type === 'quote') {
+          if (onSelectQuery) {
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSelectQuery(token.val)}
+                className="inline-flex items-center gap-1 font-semibold text-[#16181a] bg-stone-100 hover:bg-stone-200/80 px-2 py-0.5 rounded-md transition-colors cursor-pointer text-[11px] border border-stone-200/90 my-0.5 align-baseline group shadow-2xs"
+                title={`Click to ask: "${token.val}"`}
+              >
+                <span>&ldquo;{token.val}&rdquo;</span>
+                <ArrowRight className="w-2.5 h-2.5 text-stone-400 group-hover:text-[#16181a] group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+            );
+          }
+          return <span key={i}>&ldquo;{token.val}&rdquo;</span>;
+        }
         return <span key={i}>{token.val}</span>;
       })}
     </>
@@ -138,7 +200,7 @@ function InlineText({ text }) {
 }
 
 // Structured message block formatter (ZERO EMOJIS, clean Lucide iconography)
-function FormattedMessage({ content }) {
+function FormattedMessage({ content, onSelectQuery }) {
   if (!content) return null;
   // Clean out any accidental unicode emojis in incoming text
   const cleanContent = content.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
@@ -190,7 +252,7 @@ function FormattedMessage({ content }) {
                 <BarChart3 className="w-4 h-4 text-[#16181a] shrink-0" />
               )}
               <div className="min-w-0">
-                <InlineText text={trimmed} />
+                <InlineText text={trimmed} onSelectQuery={onSelectQuery} />
               </div>
             </div>
           );
@@ -203,7 +265,7 @@ function FormattedMessage({ content }) {
             <div key={idx} className="flex items-start gap-2.5 pl-2 py-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#16181a] mt-1.5 shrink-0" />
               <div className="min-w-0">
-                <InlineText text={bulletContent} />
+                <InlineText text={bulletContent} onSelectQuery={onSelectQuery} />
               </div>
             </div>
           );
@@ -218,7 +280,7 @@ function FormattedMessage({ content }) {
                 {numMatch ? numMatch[1] : '•'}.
               </span>
               <div className="min-w-0">
-                <InlineText text={numMatch ? numMatch[2] : trimmed} />
+                <InlineText text={numMatch ? numMatch[2] : trimmed} onSelectQuery={onSelectQuery} />
               </div>
             </div>
           );
@@ -230,7 +292,7 @@ function FormattedMessage({ content }) {
             <div key={idx} className="pl-6 text-stone-700 flex items-start gap-1.5 text-[11px] py-0.5">
               <span className="text-[#16181a] font-bold shrink-0">→</span>
               <div className="min-w-0">
-                <InlineText text={trimmed.replace(/^(->|➔|↳)\s*/, '')} />
+                <InlineText text={trimmed.replace(/^(->|➔|↳)\s*/, '')} onSelectQuery={onSelectQuery} />
               </div>
             </div>
           );
@@ -239,7 +301,7 @@ function FormattedMessage({ content }) {
         // Standard text paragraph
         return (
           <p key={idx} className="py-0.5">
-            <InlineText text={trimmed} />
+            <InlineText text={trimmed} onSelectQuery={onSelectQuery} />
           </p>
         );
       })}
@@ -263,6 +325,9 @@ function DraftActionCard({
         return <Package className="w-4 h-4 text-[#8c5208]" />;
       case 'CREATE_CAMPAIGN':
         return <Megaphone className="w-4 h-4 text-[#16181a]" />;
+      case 'CREATE_COLLABORATION_PROPOSAL':
+      case 'PROPOSE_COLLABORATION':
+        return <Handshake className="w-4 h-4 text-[#16181a]" />;
       case 'ADD_PRODUCT':
         return <PlusCircle className="w-4 h-4 text-emerald-700" />;
       case 'END_CAMPAIGN':
@@ -275,9 +340,12 @@ function DraftActionCard({
   const getActionTypeLabel = () => {
     switch (draftAction.action_type) {
       case 'RESTOCK_INVENTORY':
-        return 'INVENTORY REPLENISHMENT';
+        return draftAction.payload?.adjustment_type === 'DAMAGE_LOSS' ? 'INVENTORY DAMAGE DEDUCTION' : 'INVENTORY REPLENISHMENT';
       case 'CREATE_CAMPAIGN':
         return 'PROMOTIONAL CAMPAIGN DRAFT';
+      case 'CREATE_COLLABORATION_PROPOSAL':
+      case 'PROPOSE_COLLABORATION':
+        return 'JOINT BUNDLE PROPOSAL';
       case 'ADD_PRODUCT':
         return 'CATALOG PRODUCT INTAKE';
       case 'END_CAMPAIGN':
@@ -342,14 +410,43 @@ function DraftActionCard({
               </div>
               <div>
                 <span className="text-stone-400 block text-[9.5px]">Adjustment</span>
-                <span className="font-bold text-[#8c5208]">
-                  +{draftAction.payload.quantity} units
+                <span className={`font-bold ${draftAction.payload.adjustment_type === 'DAMAGE_LOSS' ? 'text-rose-600' : 'text-[#8c5208]'}`}>
+                  {draftAction.payload.adjustment_type === 'DAMAGE_LOSS' ? `-${draftAction.payload.quantity}` : `+${draftAction.payload.quantity}`} units
                 </span>
               </div>
               <div>
                 <span className="text-stone-400 block text-[9.5px]">Type</span>
                 <span className="font-semibold text-stone-800">
                   {draftAction.payload.adjustment_type || 'RESTOCK'}
+                </span>
+              </div>
+            </>
+          )}
+
+          {(draftAction.action_type === 'CREATE_COLLABORATION_PROPOSAL' || draftAction.action_type === 'PROPOSE_COLLABORATION') && (
+            <>
+              <div>
+                <span className="text-stone-400 block text-[9.5px]">Partner Store</span>
+                <span className="font-semibold text-stone-900 truncate block">
+                  {draftAction.payload.partner_merchant_name || draftAction.payload.partner_name}
+                </span>
+              </div>
+              <div>
+                <span className="text-stone-400 block text-[9.5px]">Bundle Discount</span>
+                <span className="font-bold text-emerald-700">
+                  {draftAction.payload.initiator_discount_pct || 10}% OFF
+                </span>
+              </div>
+              <div>
+                <span className="text-stone-400 block text-[9.5px]">Combo Pricing</span>
+                <span className="font-semibold text-stone-800">
+                  ₹{Number(draftAction.payload.discounted_bundle_price || 0).toLocaleString()} (Was ₹{Number(draftAction.payload.original_bundle_price || 0).toLocaleString()})
+                </span>
+              </div>
+              <div className="col-span-2 sm:col-span-3 pt-1 border-t border-stone-100">
+                <span className="text-stone-400 block text-[9.5px]">Products in Bundle</span>
+                <span className="font-medium text-stone-700 text-[10.5px]">
+                  Your: <strong className="text-stone-900">{draftAction.payload.initiator_product_name}</strong> + Partner: <strong className="text-stone-900">{draftAction.payload.partner_product_name}</strong>
                 </span>
               </div>
             </>
@@ -475,7 +572,7 @@ function DraftActionCard({
 
 const STATIC_WELCOME_MESSAGE = {
   role: 'assistant',
-  content: `**Welcome to your LocalPulse AI Business Copilot!**\n\nI am connected directly to your store's live catalog, sales history, and demand forecasting pipeline.\n\n**Here are store operations you can execute right now:**\n- **Stockout & Restock:** Ask which items are running low or trigger audited inventory replenishment.\n- **Clearance & Pricing:** Calculate margin-safe discount strategies for surplus stock.\n- **Promotional Campaigns:** Draft instant discount offers with custom budgets and target SKUs.\n- **Demand Analytics:** Inspect 7-day projected unit velocities, runway days, and revenue estimates.\n- **Catalog Management:** Add new products or end active promotional campaigns with automatic retail price restoration.`,
+  content: `**Welcome to your LocalPulse AI Business Copilot!**\n\nI am connected directly to your store's live catalog, sales telemetry, neighborhood proximity radar, and demand forecasting pipeline.\n\nYou can query in English or any Indian language, audit margins, plan festival preparation, or execute store actions using the quick-launch cards below.`,
   timestamp: '2026-10-31T04:00:00.000Z',
   evidence: [],
   draft_action: null,
@@ -491,7 +588,10 @@ export default function CopilotPage() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [confirmingIndex, setConfirmingIndex] = useState(null);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [activeCategoryTab, setActiveCategoryTab] = useState(0);
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   // Multilingual Voice Recording via Sarvam AI
   const [isRecording, setIsRecording] = useState(false);
@@ -527,7 +627,7 @@ export default function CopilotPage() {
                 ...STATIC_WELCOME_MESSAGE,
                 content: `**Welcome to your LocalPulse AI Business Copilot for ${
                   merchant?.business_name || 'your store'
-                }!**\n\nI am connected directly to your store's live catalog, sales history, and demand forecasting pipeline.\n\n**Here are store operations you can execute right now:**\n- **Stockout & Restock:** Ask which items are running low or trigger audited inventory replenishment.\n- **Clearance & Pricing:** Calculate margin-safe discount strategies for surplus stock.\n- **Promotional Campaigns:** Draft instant discount offers with custom budgets and target SKUs.\n- **Demand Analytics:** Inspect 7-day projected unit velocities, runway days, and revenue estimates.\n- **Catalog Management:** Add new products or end active promotional campaigns with automatic retail price restoration.`,
+                }!**\n\nI am connected directly to your store's live catalog, sales telemetry, neighborhood proximity radar, and demand forecasting pipeline.\n\nChoose an operational tool below or speak your command in Hindi, English, Tamil, Telugu, or any local dialect.`,
               },
             ]);
           }
@@ -567,23 +667,29 @@ export default function CopilotPage() {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const handleResetChat = async () => {
-    if (window.confirm(`Clear chat history memory for ${merchant?.business_name || 'this merchant'} and start a fresh session?`)) {
-      try {
-        await api.delete('/copilot/history');
-      } catch (err) {
-        console.warn('Failed to clear remote copilot history:', err);
-      }
-      setMessages([
-        {
-          ...STATIC_WELCOME_MESSAGE,
-          content: `**Welcome to your LocalPulse AI Business Copilot for ${
-            merchant?.business_name || 'your store'
-          }!**\n\nI am connected directly to your store's live catalog, sales history, and demand forecasting pipeline.\n\n**Here are store operations you can execute right now:**\n- **Stockout & Restock:** Ask which items are running low or trigger audited inventory replenishment.\n- **Clearance & Pricing:** Calculate margin-safe discount strategies for surplus stock.\n- **Promotional Campaigns:** Draft instant discount offers with custom budgets and target SKUs.\n- **Demand Analytics:** Inspect 7-day projected unit velocities, runway days, and revenue estimates.\n- **Catalog Management:** Add new products or end active promotional campaigns with automatic retail price restoration.`,
-        },
-      ]);
-      setInputQuery('');
+  const handleResetChat = () => {
+    setShowResetModal(true);
+  };
+
+  const confirmResetChat = async () => {
+    setIsResetting(true);
+    try {
+      await api.delete('/copilot/history');
+    } catch (err) {
+      console.warn('Failed to clear remote copilot history:', err);
+    } finally {
+      setIsResetting(false);
+      setShowResetModal(false);
     }
+    setMessages([
+      {
+        ...STATIC_WELCOME_MESSAGE,
+        content: `**Welcome to your LocalPulse AI Business Copilot for ${
+          merchant?.business_name || 'your store'
+        }!**\n\nI am connected directly to your store's live catalog, sales telemetry, neighborhood proximity radar, and demand forecasting pipeline.\n\nChoose an operational tool below or speak your command in Hindi, English, Tamil, Telugu, or any local dialect.`,
+      },
+    ]);
+    setInputQuery('');
   };
 
   const handleSendMessage = async (customQuery = null) => {
@@ -601,10 +707,14 @@ export default function CopilotPage() {
     setLoading(true);
 
     try {
-      const res = await api.post('/copilot/chat', {
-        message: userMsg.content,
-        query: userMsg.content,
-      });
+      const res = await api.post(
+        '/copilot/chat',
+        {
+          message: userMsg.content,
+          query: userMsg.content,
+        },
+        { timeout: 45000 }
+      );
 
       const assistantMsg = {
         message_id: res.data.message_id,
@@ -620,12 +730,19 @@ export default function CopilotPage() {
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
       console.error('Copilot request failed:', err);
-      const serverDetail =
+      let serverDetail =
         err.response?.data?.detail ||
-        err.response?.data?.message ||
-        (err.code === 'ERR_NETWORK'
-          ? 'Network Error: Cannot connect to backend server. Please verify backend is running on port 8000.'
-          : 'Sorry, I encountered an issue communicating with the LocalPulse advisory service.');
+        err.response?.data?.message;
+
+      if (!serverDetail) {
+        if (err.code === 'ECONNABORTED' || (err.message && err.message.toLowerCase().includes('timeout'))) {
+          serverDetail = 'Request timed out waiting for AI Copilot. The advisory engine is still processing or experiencing network delays. Please try again.';
+        } else if (err.code === 'ERR_NETWORK') {
+          serverDetail = 'Network Error: Cannot connect to backend server. Please verify backend is running on port 8000.';
+        } else {
+          serverDetail = 'Sorry, I encountered an issue communicating with the LocalPulse advisory service.';
+        }
+      }
       const detailStr = typeof serverDetail === 'object' ? JSON.stringify(serverDetail) : serverDetail;
       setMessages((prev) => [
         ...prev,
@@ -899,7 +1016,7 @@ export default function CopilotPage() {
                         {msg.content}
                       </p>
                     ) : (
-                      <FormattedMessage content={msg.content} />
+                      <FormattedMessage content={msg.content} onSelectQuery={handleSendMessage} />
                     )}
 
                     {/* Optional chart (shown only when the merchant asks for it) */}
@@ -954,6 +1071,67 @@ export default function CopilotPage() {
             })
           )}
 
+          {/* Interactive Starter Capabilities Grid (Shown on welcome / initial empty chat) */}
+          {messages.length <= 1 && (
+            <div className="pt-3 pb-2 space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#16181a]" />
+                  <span className="text-[11px] font-bold text-[#16181a] uppercase tracking-wider">
+                    Core Operational Capabilities
+                  </span>
+                </div>
+                <span className="text-[11px] text-stone-500 font-medium hidden sm:inline">
+                  Click any prompt to run immediately
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {SUGGESTED_CATEGORIES.map((cat, idx) => {
+                  const Icon = cat.icon;
+                  return (
+                    <div
+                      key={idx}
+                      className="p-4 rounded-[22px] bg-white border border-stone-200/90 shadow-[0_2px_12px_rgba(20,24,20,0.02)] hover:border-stone-400 hover:shadow-xs transition-all flex flex-col justify-between group"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-[#f7f8f4] border border-stone-200/80 flex items-center justify-center text-[#16181a] group-hover:bg-[#16181a] group-hover:text-white transition-colors shrink-0">
+                              <Icon className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="font-bold text-xs text-[#16181a]">{cat.category}</span>
+                          </div>
+                          <span className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200/60 font-mono">
+                            {cat.badge}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-stone-500 line-clamp-2 mb-3 leading-relaxed">
+                          {cat.description}
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5 pt-2 border-t border-stone-100">
+                        {cat.queries.slice(0, 2).map((q, qIdx) => (
+                          <button
+                            key={qIdx}
+                            type="button"
+                            onClick={() => handleSendMessage(q)}
+                            disabled={loading}
+                            className="w-full text-left px-2.5 py-1.5 rounded-xl bg-[#fbfbf9] hover:bg-[#f2f3ee] text-[11px] text-stone-800 font-medium transition-all flex items-center justify-between gap-2 group/btn cursor-pointer border border-transparent hover:border-stone-200/90"
+                          >
+                            <span className="line-clamp-1">{q}</span>
+                            <ArrowRight className="w-3 h-3 text-stone-400 group-hover/btn:text-[#16181a] group-hover/btn:translate-x-0.5 transition-all shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Loading Animation Bubble */}
           {loading && (
             <div className="flex gap-3 max-w-md animate-in fade-in">
@@ -972,51 +1150,78 @@ export default function CopilotPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Categorized Quick Query Pill Drawer (Dribbble horizontal pill layout) */}
-        <div className="px-5 py-3 bg-white border-t border-stone-100 shrink-0">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-              <Sparkles className="w-3.5 h-3.5 text-[#16181a]" />
-              <span>Operational Quick Actions</span>
+        {/* Categorized Operational Quick Actions Drawer */}
+        <div className="px-5 py-2.5 bg-white border-t border-stone-100 shrink-0 space-y-2">
+          {/* Header Row & Category Tabs */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center justify-between sm:justify-start gap-2">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-stone-400 uppercase tracking-widest shrink-0">
+                <Sparkles className="w-3.5 h-3.5 text-[#16181a]" />
+                <span>Suggested Actions</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSuggestions(!showSuggestions)}
+                className="text-[10px] text-stone-400 hover:text-stone-700 flex items-center gap-0.5 cursor-pointer ml-1 font-semibold"
+                title={showSuggestions ? 'Collapse suggestions' : 'Expand suggestions'}
+              >
+                {showSuggestions ? (
+                  <>
+                    <span>Hide</span>
+                    <ChevronUp className="w-3 h-3" />
+                  </>
+                ) : (
+                  <>
+                    <span>Show</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </>
+                )}
+              </button>
             </div>
 
-            {/* Category Filter Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-              {SUGGESTED_CATEGORIES.map((cat, idx) => {
-                const Icon = cat.icon;
-                const isActive = activeCategoryTab === idx;
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveCategoryTab(idx)}
-                    className={`px-3 py-1 rounded-full text-[10.5px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                      isActive
-                        ? 'bg-[#16181a] text-white shadow-2xs font-bold'
-                        : 'bg-stone-50 text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200/80'
-                    }`}
-                  >
-                    <Icon className="w-3 h-3" />
-                    <span>{cat.category}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {/* Category Filter Tabs with smooth scroll */}
+            {showSuggestions && (
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                {SUGGESTED_CATEGORIES.map((cat, idx) => {
+                  const Icon = cat.icon;
+                  const isActive = activeCategoryTab === idx;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveCategoryTab(idx)}
+                      className={`px-3 py-1 rounded-full text-[10.5px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
+                        isActive
+                          ? 'bg-[#16181a] text-white shadow-2xs font-bold'
+                          : 'bg-stone-50 text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200/80'
+                      }`}
+                    >
+                      <Icon className="w-3 h-3 shrink-0" />
+                      <span>{cat.category}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Quick Query Pills for Active Category */}
-          <div className="flex flex-wrap items-center gap-2">
-            {SUGGESTED_CATEGORIES[activeCategoryTab]?.queries.map((sq, i) => (
-              <button
-                key={i}
-                onClick={() => handleSendMessage(sq)}
-                disabled={loading}
-                className="text-[11px] px-3.5 py-1.5 rounded-full bg-stone-50 hover:bg-stone-100 border border-stone-200/90 text-stone-800 font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <span>{sq}</span>
-                <ArrowRight className="w-3 h-3 text-stone-400" />
-              </button>
-            ))}
-          </div>
+          {showSuggestions && (
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              {SUGGESTED_CATEGORIES[activeCategoryTab]?.queries.map((sq, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleSendMessage(sq)}
+                  disabled={loading}
+                  className="text-[11px] px-3.5 py-1.5 rounded-full bg-stone-50 hover:bg-stone-100 hover:border-stone-300 border border-stone-200/90 text-stone-800 font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50 group"
+                >
+                  <span>{sq}</span>
+                  <ArrowRight className="w-3 h-3 text-stone-400 group-hover:text-[#16181a] group-hover:translate-x-0.5 transition-all shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Voice Feedback Banner */}
@@ -1141,6 +1346,60 @@ export default function CopilotPage() {
           </form>
         </div>
       </div>
+      {/* Reset Chat Confirmation Modal */}
+      <Modal
+        isOpen={showResetModal}
+        onClose={() => !isResetting && setShowResetModal(false)}
+        title="Reset Chat Session?"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-[#fbe8e4] border border-[#f3c5bd] text-xs text-[#a43b27] flex items-start gap-3">
+            <RotateCcw className="w-5 h-5 shrink-0 mt-0.5 text-[#a43b27]" />
+            <div className="leading-relaxed">
+              <strong className="font-bold">Clear Conversation Memory:</strong>
+              <p className="mt-1">
+                This will clear the conversation memory and chat history for{' '}
+                <strong className="underline">{merchant?.business_name || 'your store'}</strong>{' '}
+                and start a clean new session.
+              </p>
+            </div>
+          </div>
+
+          <p className="text-xs text-stone-500 font-medium leading-relaxed">
+            Your inventory stock, campaigns, catalog, and sales history in the database will <strong>not</strong> be affected.
+          </p>
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
+            <button
+              type="button"
+              onClick={() => setShowResetModal(false)}
+              disabled={isResetting}
+              className="px-4 py-2 rounded-full border border-stone-200 text-stone-700 hover:bg-stone-50 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmResetChat}
+              disabled={isResetting}
+              className="px-5 py-2 rounded-full bg-[#16181a] hover:bg-stone-800 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#e0fd53]" />
+                  <span>Clearing...</span>
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="w-3.5 h-3.5 text-[#e0fd53]" />
+                  <span>Reset Chat</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </AppLayout>
   );
 }

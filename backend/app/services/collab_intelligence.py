@@ -116,7 +116,7 @@ FESTIVAL_AFFINITY = {
 # In-memory cache for Gemini choices: key -> (timestamp, {partner_id: {...}})
 _AI_CACHE: Dict[str, Tuple[float, dict]] = {}
 AI_CACHE_SECONDS = 1800
-AI_TIMEOUT_SECONDS = 8.0
+AI_TIMEOUT_SECONDS = 10.0
 
 
 def _facets(product: dict) -> set:
@@ -369,7 +369,7 @@ async def _ai_choose(me: dict, candidates: Dict[str, dict], cache_only: bool = F
         client = genai.Client(api_key=settings.LLM_API_KEY)
         response = await asyncio.wait_for(
             client.aio.models.generate_content(
-                model=settings.LLM_MODEL or "gemini-2.5-flash",
+                model=settings.LLM_MODEL or "gemini-3.8-flash",
                 contents=prompt,
                 config=genai_types.GenerateContentConfig(temperature=0.2, response_mime_type="application/json"),
             ),
@@ -389,6 +389,9 @@ async def _ai_choose(me: dict, candidates: Dict[str, dict], cache_only: bool = F
         _AI_CACHE[key] = (time.time(), result)
         return result
     except Exception as e:  # no key / timeout / bad JSON / API error -> rules only
+        from app.core.llm_monitor import is_gemini_rate_limit_error, record_gemini_rate_limit
+        if is_gemini_rate_limit_error(e):
+            record_gemini_rate_limit()
         logger.warning(f"AI collaboration choice unavailable ({e!r}); using rule-based suggestions.")
         return {}
 

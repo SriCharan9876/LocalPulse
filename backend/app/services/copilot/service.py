@@ -14,9 +14,9 @@ from app.schemas.copilot import (
     CopilotChatResponse, CopilotEvidenceItem, DraftAction,
     ActionConfirmationResponse, ChartData,
 )
-from app.services.copilot_parser import agent_tool_parser, CHART_WORDS
-from app.services.copilot_executor import copilot_tool_executor
-from app.services.action_guards import (
+from app.services.copilot.parser import agent_tool_parser, CHART_WORDS
+from app.services.copilot.executors import copilot_tool_executor
+from app.services.copilot.guards import (
     to_float, to_int, normalize_adjustment_type, check_quantity,
     check_discount, check_discount_vs_cost, check_new_product,
 )
@@ -36,6 +36,7 @@ class CopilotService:
         collaborations: List[dict],
         history: Optional[List[dict]] = None,
         events: Optional[List[dict]] = None,
+        db: Optional[AsyncIOMotorDatabase] = None,
     ) -> CopilotChatResponse:
         """
         Agentic Copilot Entrypoint:
@@ -69,8 +70,17 @@ class CopilotService:
                     provider_info="LocalPulse Agent: Confirmation Guide",
                 )
 
-        response = self._dispatch(tool_name, tool_args, query, merchant, products, recent_sales,
-                                  campaigns, events)
+        response = await self._dispatch(
+            tool_name=tool_name,
+            tool_args=tool_args,
+            query=query,
+            merchant=merchant,
+            products=products,
+            recent_sales=recent_sales,
+            campaigns=campaigns,
+            events=events,
+            db=db,
+        )
 
         # Charts are shown on request only. If the merchant already asked for a chart
         # ("... give me a vs chart") open it straight away; otherwise offer it.
@@ -79,6 +89,10 @@ class CopilotService:
                 response.chart.auto_open = True
             else:
                 response.reply += "\n\n*Want to see this as a chart? Tap **Show chart** below or reply \"yes\".*"
+
+        from app.core.llm_monitor import has_gemini_rate_limit_occurred
+        if has_gemini_rate_limit_occurred():
+            response.llm_rate_limited = True
         return response
 
     def _show_previous_chart(self, history: Optional[List[dict]]) -> CopilotChatResponse:
@@ -96,7 +110,7 @@ class CopilotService:
             provider_info="LocalPulse Agent: Chart View",
         )
 
-    def _dispatch(
+    async def _dispatch(
         self,
         tool_name: Optional[str],
         tool_args: Dict[str, Any],
@@ -106,6 +120,7 @@ class CopilotService:
         recent_sales: List[dict],
         campaigns: List[dict],
         events: Optional[List[dict]],
+        db: Optional[AsyncIOMotorDatabase] = None,
     ) -> CopilotChatResponse:
         """Run the selected tool."""
 
@@ -186,6 +201,64 @@ class CopilotService:
                 campaigns=campaigns
             )
 
+        elif tool_name == "get_nearby_merchants":
+            return await copilot_tool_executor.execute_get_nearby_merchants(
+                args=tool_args,
+                merchant=merchant,
+                db=db
+            )
+
+        elif tool_name == "get_upcoming_events":
+            return await copilot_tool_executor.execute_get_upcoming_events(
+                args=tool_args,
+                merchant=merchant,
+                events=events,
+                db=db
+            )
+
+        elif tool_name == "get_event_action_plan":
+            return await copilot_tool_executor.execute_get_event_action_plan(
+                args=tool_args,
+                merchant=merchant,
+                products=products,
+                sales=recent_sales,
+                events=events,
+                db=db
+            )
+
+        elif tool_name == "discover_collaboration_partners":
+            return await copilot_tool_executor.execute_discover_collaboration_partners(
+                args=tool_args,
+                merchant=merchant,
+                products=products,
+                db=db
+            )
+
+        elif tool_name == "create_collaboration_proposal":
+            return await copilot_tool_executor.execute_create_collaboration_proposal(
+                args=tool_args,
+                merchant=merchant,
+                products=products,
+                db=db
+            )
+
+        elif tool_name == "get_demand_forecast":
+            return await copilot_tool_executor.execute_get_demand_forecast(
+                args=tool_args,
+                merchant=merchant,
+                products=products,
+                sales=recent_sales,
+                events=events,
+                db=db
+            )
+
+        elif tool_name == "get_catalog_products":
+            return copilot_tool_executor.execute_get_catalog_products(
+                args=tool_args,
+                merchant=merchant,
+                products=products
+            )
+
         else:
             # Query cannot be mapped to any operational tool
             return copilot_tool_executor.execute_unmapped_fallback(query=query, products=products)
@@ -204,6 +277,7 @@ class CopilotService:
         - ADD_PRODUCT
         - CREATE_CAMPAIGN
         - END_CAMPAIGN
+        - CREATE_COLLABORATION_PROPOSAL / PROPOSE_COLLABORATION
         """
         m_id = merchant["merchant_id"]
         now = datetime.utcnow()
@@ -233,11 +307,8 @@ class CopilotService:
             if p_id:
                 product = await db.products.find_one({"merchant_id": m_id, "product_id": p_id})
             
-            # Fallback to name search if product_id was not found (or drafted with name)
             p_name = payload.get("product_name")
             if not product and p_name and str(p_name).strip():
-                # re.escape: product names like "Atta (5kg" or ".*" must be matched literally,
-                # not as regex patterns (previously crashed with a 500 / matched everything).
                 product = await db.products.find_one({
                     "merchant_id": m_id,
                     "name": {"$regex": re.escape(str(p_name).strip()), "$options": "i"}
@@ -374,8 +445,6 @@ class CopilotService:
             except ValueError:
                 return fail("Campaign dates must be in YYYY-MM-DD format.")
 
-            # Validate every target product BEFORE writing anything, so a bad product
-            # can't leave a half-created campaign behind.
             target_products = []
             for pid in target_product_ids:
                 prod = await db.products.find_one({"merchant_id": m_id, "product_id": str(pid)})
@@ -405,7 +474,6 @@ class CopilotService:
             }
             await db.campaigns.insert_one(camp_doc)
 
-            # Apply promotional discount to target products (already validated above)
             for prod in target_products:
                 orig_sp = float(prod.get("selling_price", 0.0))
                 discounted_price = round(orig_sp * (1.0 - (discount_pct / 100.0)), 2)
@@ -435,13 +503,11 @@ class CopilotService:
                     executed_action_type=action_type
                 )
 
-            # Mark COMPLETED
             await db.campaigns.update_one(
                 {"merchant_id": m_id, "campaign_id": camp_id},
                 {"$set": {"status": "COMPLETED"}}
             )
 
-            # Revert targeted products to regular retail price
             if camp.get("target_product_ids"):
                 for pid in camp["target_product_ids"]:
                     prod = await db.products.find_one({"merchant_id": m_id, "product_id": pid})
@@ -460,6 +526,80 @@ class CopilotService:
                 message=f"Campaign '{camp.get('title')}' successfully ended. Regular catalog pricing restored.",
                 executed_action_type=action_type,
                 result_data={"campaign_id": camp_id, "status": "COMPLETED"}
+            )
+
+        # ── 5. PROPOSE COLLABORATIVE BUNDLE ──────────────────────────────────
+        elif action_type in ["CREATE_COLLABORATION_PROPOSAL", "PROPOSE_COLLABORATION"]:
+            partner_id = payload.get("partner_merchant_id")
+            if not partner_id:
+                return fail("Partner merchant ID is required for collaboration proposal.")
+
+            partner = await db.merchants.find_one({"merchant_id": partner_id})
+            if not partner:
+                return fail(f"Partner merchant '{partner_id}' not found.")
+
+            init_p_id = payload.get("initiator_product_id")
+            init_prod = await db.products.find_one({"merchant_id": m_id, "product_id": init_p_id})
+            if not init_prod:
+                return fail(f"Initiator product '{init_p_id}' not found in your catalog.")
+
+            part_p_id = payload.get("partner_product_id")
+            part_prod = await db.products.find_one({"merchant_id": partner_id, "product_id": part_p_id})
+            if not part_prod:
+                return fail(f"Partner product '{part_p_id}' not found in partner's catalog.")
+
+            init_disc = float(payload.get("initiator_discount_pct", 10.0))
+            part_disc = float(payload.get("partner_discount_pct", 10.0))
+            bundle_name = payload.get("bundle_name") or f"{init_prod['name']} & {part_prod['name']} Combo"
+
+            from app.services.collaboration import collaboration_service
+            val = collaboration_service.validate_bundle_margins(
+                initiator_product=init_prod,
+                initiator_discount_pct=init_disc,
+                partner_product=part_prod,
+                partner_discount_pct=part_disc,
+                bundle_name=bundle_name,
+            )
+            if not val.is_financially_viable:
+                return fail(f"Proposal violates margin safety constraints: {val.status_reason}")
+
+            prop_id = f"collab-prop-{uuid.uuid4().hex[:8]}"
+            prop_doc = {
+                "proposal_id": prop_id,
+                "bundle_name": bundle_name,
+                "bundle_description": payload.get("bundle_description") or "Collaborative bundle proposal created via AI Copilot.",
+                "initiator_merchant_id": m_id,
+                "initiator_merchant_name": merchant["business_name"],
+                "initiator_product_id": init_prod["product_id"],
+                "initiator_product_name": init_prod["name"],
+                "initiator_discount_pct": init_disc,
+                "initiator_margin_pct": val.initiator_margin_pct,
+                "initiator_approved": True,
+
+                "partner_merchant_id": partner["merchant_id"],
+                "partner_merchant_name": partner["business_name"],
+                "partner_product_id": part_prod["product_id"],
+                "partner_product_name": part_prod["name"],
+                "partner_discount_pct": part_disc,
+                "partner_margin_pct": val.partner_margin_pct,
+                "partner_approved": False,
+
+                "original_bundle_price": val.original_bundle_price,
+                "discounted_bundle_price": val.discounted_bundle_price,
+                "status": "PENDING_APPROVAL",
+                "proposed_duration_days": int(payload.get("proposed_duration_days", 14)),
+                "created_at": now,
+                "updated_at": now,
+                "is_synthetic": True,
+            }
+
+            await db.collaborations.insert_one(prop_doc)
+
+            return ActionConfirmationResponse(
+                success=True,
+                message=f"Collaboration proposal for '{bundle_name}' successfully submitted to {partner['business_name']}!",
+                executed_action_type=action_type,
+                result_data={"proposal_id": prop_id, "status": "PENDING_APPROVAL"}
             )
 
         else:

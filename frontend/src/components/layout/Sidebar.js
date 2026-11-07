@@ -12,6 +12,7 @@ import {
   BookOpen,
   LogOut,
   MapPin,
+  Store,
 } from 'lucide-react';
 import { LogoMark } from '@/components/ui/Logo';
 
@@ -45,9 +46,15 @@ export default function Sidebar() {
       badge: 'New',
     },
     {
-      name: 'Campaign Results',
+      name: 'Campaign',
       href: '/campaigns',
       icon: Megaphone,
+      badge: null,
+    },
+    {
+      name: 'Store Profile & Map',
+      href: '/profile',
+      icon: Store,
       badge: null,
     },
   ];
@@ -55,11 +62,11 @@ export default function Sidebar() {
 
   const initials = merchant?.business_name
     ? merchant.business_name
-        .split(' ')
-        .map((w) => w[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase()
+      .split(' ')
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase()
     : 'LP';
 
   return (
@@ -94,27 +101,24 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs md:text-sm font-semibold transition-all ${
-                    isActive
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs md:text-sm font-semibold transition-all ${isActive
                       ? 'bg-[#e0fd53] text-[#151719] shadow-sm font-bold'
                       : 'text-stone-300 hover:text-white hover:bg-white/5'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon
-                      className={`w-4 h-4 ${
-                        isActive ? 'text-[#151719]' : 'text-stone-400'
-                      }`}
+                      className={`w-4 h-4 ${isActive ? 'text-[#151719]' : 'text-stone-400'
+                        }`}
                     />
                     <span>{item.name}</span>
                   </div>
                   {item.badge && (
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold min-w-5 text-center ${
-                        isActive
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold min-w-5 text-center ${isActive
                           ? 'bg-[#151719] text-[#e0fd53]'
                           : 'bg-[#25282d] text-stone-300 border border-white/5'
-                      }`}
+                        }`}
                     >
                       {item.badge}
                     </span>
@@ -147,23 +151,26 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Dribbble-style Bottom Avatar Profile Bar */}
-      <div className="px-4 py-3 bg-[#111315] border-t border-white/5 flex items-center justify-between">
+      {/* Bottom Avatar Profile Bar */}
+      <Link
+        href="/profile"
+        className="px-4 py-3 bg-[#111315] border-t border-white/5 flex items-center justify-between hover:bg-white/5 transition-colors cursor-pointer group"
+      >
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-[#202327] border border-white/10 text-stone-200 font-bold text-xs flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-[#202327] border border-white/10 text-stone-200 font-bold text-xs flex items-center justify-center shrink-0 group-hover:border-[#e0fd53]/50">
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-white truncate">
+            <p className="text-xs font-semibold text-white truncate group-hover:text-[#e0fd53]">
               {merchant?.owner_name || 'Store Owner'}
             </p>
             <p className="text-[10px] text-stone-400 truncate">
-              {merchant?.city || 'Local Hub'}
+              {merchant?.business_name || 'Store Profile'}
             </p>
           </div>
         </div>
         <div className="w-2 h-2 rounded-full bg-[#e0fd53]" title="Online & Connected" />
-      </div>
+      </Link>
     </aside>
   );
 }

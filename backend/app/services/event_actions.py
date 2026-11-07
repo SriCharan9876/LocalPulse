@@ -17,7 +17,7 @@ from datetime import date, timedelta
 from typing import Dict, List, Optional
 
 from app.schemas.copilot import DraftAction
-from app.services.action_guards import max_discount_above_cost, check_discount_vs_cost
+from app.services.copilot.guards import max_discount_above_cost, check_discount_vs_cost
 from app.services.forecasting import forecasting_service, event_multiplier_for_day
 
 RESTOCK_WINDOW_DAYS = 21      # further away than this: too early to order stock
@@ -190,7 +190,7 @@ def build_event_action_plan(
                 "text": (f"Bundle with {s['merchant']['business_name']} for {short}: "
                          f"{_short_name(b['initiator_product_name'])} + {_short_name(b['partner_product_name'])} "
                          f"({b['initiator_discount_pct']:g}% + {b['partner_discount_pct']:g}% off)."),
-                "href": f"/collaborations?partner={s['merchant']['merchant_id']}",
+                "href": f"/neighborhood?partner={s['merchant']['merchant_id']}",
             })
         if len(plan["ideas"]) >= 2:
             break

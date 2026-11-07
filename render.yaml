@@ -15,7 +15,7 @@ services:
       - key: LLM_PROVIDER
         value: gemini
       - key: LLM_MODEL
-        value: gemini-2.5-flash
+        value: gemini-3.8-flash
       - key: SARVAM_STT_MODEL
         value: saaras:v4
       - key: MONGODB_URI

@@ -448,9 +448,15 @@ Return ONLY a valid JSON array.
     def _call_gemini_sync():
         from google import genai
         from google.genai import types as genai_types
-        client = genai.Client(api_key=settings.LLM_API_KEY)
+        client = genai.Client(
+            api_key=settings.LLM_API_KEY,
+            http_options={"timeout": 4000}
+        )
+        model_name = settings.LLM_MODEL or "gemini-3.8-flash"
+        if "3.8" in model_name:
+            model_name = "gemini-3.8-flash"
         resp = client.models.generate_content(
-            model=settings.LLM_MODEL or "gemini-3.8-flash",
+            model=model_name,
             contents=prompt,
             config=genai_types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -509,6 +515,9 @@ Return ONLY a valid JSON array.
                 logger.warning(f"Error persisting merchant_occasion_insights: {e}")
 
     except Exception as e:
+        from app.core.llm_monitor import is_gemini_rate_limit_error, record_gemini_rate_limit
+        if is_gemini_rate_limit_error(e):
+            record_gemini_rate_limit()
         logger.warning(f"Gemini call timed out or failed ({e}), using instant real-catalog enrichment fallback.")
         # Fallback using real merchant products directly
         prod_names = [p["name"] for p in real_products[:4]]

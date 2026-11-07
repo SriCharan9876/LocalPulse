@@ -32,10 +32,41 @@ export default function SignupPage() {
     phone: '',
     email: '',
     password: '',
+    latitude: null,
+    longitude: null,
   });
 
   const [loading, setLoading] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoDetected, setGeoDetected] = useState(false);
   const [error, setError] = useState('');
+
+  const handleDetectLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+        setFormData((prev) => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng,
+        }));
+        setGeoDetected(true);
+        setGeoLoading(false);
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+        setGeoLoading(false);
+        alert('Could not access device GPS. Your shop will be assigned a realistic storefront position in the Bengaluru neighborhood cluster automatically.');
+      },
+      { timeout: 8000 }
+    );
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -204,6 +235,31 @@ export default function SignupPage() {
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-hidden focus:border-[#16181a] shadow-2xs font-medium"
                     placeholder="12th Main, Sarjapur Rd, Bengaluru"
                   />
+                </div>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={handleDetectLocation}
+                    disabled={geoLoading}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-600 hover:text-[#16181a] transition-colors"
+                  >
+                    {geoLoading ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin text-[#16181a]" />
+                        <span>Detecting device GPS...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Compass className="w-3 h-3 text-[#16181a]" />
+                        <span>{geoDetected ? 'Re-detect GPS Coordinates' : 'Detect Shop Location (GPS)'}</span>
+                      </>
+                    )}
+                  </button>
+                  {geoDetected && (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      GPS: {formData.latitude}, {formData.longitude}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

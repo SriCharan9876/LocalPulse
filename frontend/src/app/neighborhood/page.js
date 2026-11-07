@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import AppLayout from '@/components/layout/AppLayout';
 import Modal from '@/components/ui/Modal';
+import Badge from '@/components/ui/Badge';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import {
@@ -20,7 +21,9 @@ import {
   CheckCircle2,
   Phone,
   Layers,
-  Compass
+  Compass,
+  Handshake,
+  ShieldCheck,
 } from 'lucide-react';
 import NeighborhoodCalendar from '@/components/calendar/NeighborhoodCalendar';
 import EventActionPlan from '@/components/actions/EventActionPlan';
@@ -45,7 +48,9 @@ export default function NeighborhoodPage() {
   const [nearbyMerchants, setNearbyMerchants] = useState([]);
   const [events, setEvents] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeDirectoryTab, setActiveDirectoryTab] = useState('stores'); // 'stores' | 'proposals'
 
   // Selection states
   const [selectedMerchantId, setSelectedMerchantId] = useState(null);
@@ -67,14 +72,16 @@ export default function NeighborhoodPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [merchantsRes, eventsRes, summaryRes] = await Promise.all([
-        api.get('/neighborhood/merchants'),
-        api.get('/neighborhood/events'),
-        api.get('/neighborhood/summary'),
+      const [merchantsRes, eventsRes, summaryRes, proposalsRes] = await Promise.all([
+        api.get('/neighborhood/merchants').catch((e) => { console.error('merchants:', e.message); return { data: [] }; }),
+        api.get('/neighborhood/events').catch((e) => { console.error('events:', e.message); return { data: [] }; }),
+        api.get('/neighborhood/summary').catch((e) => { console.error('summary:', e.message); return { data: null }; }),
+        api.get('/collaborations/proposals').catch(() => ({ data: [] })),
       ]);
-      setNearbyMerchants(merchantsRes.data);
-      setEvents(eventsRes.data);
+      setNearbyMerchants(merchantsRes.data || []);
+      setEvents(eventsRes.data || []);
       setSummary(summaryRes.data);
+      setProposals(proposalsRes.data || []);
     } catch (err) {
       console.error('Failed to load neighborhood data:', err);
     } finally {
@@ -116,7 +123,22 @@ export default function NeighborhoodPage() {
     }
   };
 
-  // Map pin popups are plain HTML (Leaflet), so their buttons are caught here
+  // Handle URL deep links (?partner=... or ?tab=proposals) — must be after openCollab
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const partnerId = params.get('partner');
+      const tab = params.get('tab');
+      if (tab === 'proposals') {
+        setActiveDirectoryTab('proposals');
+      }
+      if (partnerId) {
+        window.history.replaceState(null, '', window.location.pathname);
+        openCollab(partnerId);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     const onClick = (e) => {
       const el = e.target.closest?.('[data-collab-partner]');
@@ -127,6 +149,23 @@ export default function NeighborhoodPage() {
     document.addEventListener('click', onClick, true); // capture: runs before Leaflet's popup handlers
     return () => document.removeEventListener('click', onClick, true);
   });
+
+  // Approve / Reject a collaboration proposal
+  const handleRespondProposal = async (proposalId, action) => {
+    try {
+      await api.post(`/collaborations/proposals/${proposalId}/respond?action=${action}`);
+      await loadData();
+      setCollabNotice(
+        action === 'APPROVE'
+          ? 'Collaboration proposal approved! Joint bundle is now active.'
+          : 'Proposal rejected.'
+      );
+      setTimeout(() => setCollabNotice(''), 6000);
+    } catch (err) {
+      console.error('Failed to update proposal response:', err);
+      alert(err.response?.data?.detail || 'Failed to update proposal response.');
+    }
+  };
 
   const handleResetEntireData = async () => {
     setResetting(true);
@@ -151,7 +190,7 @@ export default function NeighborhoodPage() {
   return (
     <AppLayout
       title="Local Map & Community Events"
-      subtitle="Geographical merchant clusters, real proximity radar, and demand-driving neighborhood events"
+      subtitle="Geographical merchant clusters, proximity radar, demand events, and joint bundle collaborations"
     >
       {/* Top Banner and Quick Reset Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
@@ -305,132 +344,266 @@ export default function NeighborhoodPage() {
             </div>
           </div>
 
-          {/* Nearby Merchant Directory List */}
+          {/* Nearby Merchant Directory + Bundle Proposals (tabbed) */}
           <div className="bg-white rounded-[28px] border border-stone-200/90 shadow-[0_4px_24px_rgba(20,24,20,0.04)] p-5 md:p-6 space-y-4">
+            {/* Tab Header */}
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-              <div>
-                <h3 className="text-base font-extrabold text-[#16181a] tracking-tight flex items-center gap-2">
-                  <Store className="w-4 h-4 text-[#16181a]" />
-                  <span>Nearby Merchant Directory</span>
-                </h3>
-                <p className="text-[11px] text-stone-500 font-medium mt-0.5">
-                  Ordered by exact street walking distance from your shop
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-xs font-mono font-bold text-stone-400">
-                  {nearbyMerchants.length} stores
-                </span>
-                {/* Collaborations left the sidebar; proposals stay one click away here */}
-                <a
-                  href="/collaborations"
-                  className="text-[11px] font-bold text-[#16181a] hover:underline inline-flex items-center gap-1"
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActiveDirectoryTab('stores')}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                    activeDirectoryTab === 'stores'
+                      ? 'bg-[#16181a] text-white shadow-xs font-bold'
+                      : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 shadow-2xs'
+                  }`}
                 >
-                  Bundle proposals <ArrowRight className="w-3 h-3" />
-                </a>
+                  Nearby Stores ({nearbyMerchants.length})
+                </button>
+                <button
+                  onClick={() => setActiveDirectoryTab('proposals')}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                    activeDirectoryTab === 'proposals'
+                      ? 'bg-[#16181a] text-white shadow-xs font-bold'
+                      : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 shadow-2xs'
+                  }`}
+                >
+                  <span>Bundle Proposals ({proposals.length})</span>
+                  {proposals.some(
+                    (p) =>
+                      p.status === 'PENDING_APPROVAL' &&
+                      ((p.partner_merchant_id === merchant?.merchant_id && !p.partner_approved) ||
+                        (p.initiator_merchant_id === merchant?.merchant_id && !p.initiator_approved))
+                  ) && (
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                  )}
+                </button>
               </div>
+              {activeDirectoryTab === 'stores' && (
+                <span className="text-xs font-mono font-bold text-stone-400">
+                  by walking distance
+                </span>
+              )}
+              {activeDirectoryTab === 'proposals' && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stone-200/90 bg-[#f7f8f4] text-[10px] font-bold text-stone-600">
+                  <ShieldCheck className="w-3 h-3 text-[#16181a]" />
+                  <span>12% Min Margin</span>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-3">
-              {nearbyMerchants.map((m) => {
-                const isSelected = selectedMerchantId === m.merchant_id;
-                const distLabel = m.distance_meters ? `${m.distance_meters}m` : `${m.distance_km}km`;
+            {/* ── Tab: Nearby Stores ── */}
+            {activeDirectoryTab === 'stores' && (
+              <div className="space-y-3">
+                {nearbyMerchants.map((m) => {
+                  const isSelected = selectedMerchantId === m.merchant_id;
+                  const distLabel = m.distance_meters ? `${m.distance_meters}m` : `${m.distance_km}km`;
 
-                return (
-                  <div
-                    key={m.merchant_id}
-                    onClick={() => setSelectedMerchantId(m.merchant_id)}
-                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                      isSelected
-                        ? 'bg-[#16181a] text-white border-stone-800 shadow-md ring-2 ring-[#e0fd53]/40'
-                        : 'bg-white hover:bg-[#fafaf7] border-stone-200/90 text-stone-800 shadow-2xs'
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                            isSelected
-                              ? 'bg-stone-800 text-[#e0fd53] border border-stone-700'
-                              : 'bg-[#f7f8f4] text-stone-700 border border-stone-200/90'
-                          }`}
-                        >
-                          {m.category}
-                        </span>
-                        <span
-                          className={`text-xs font-mono font-bold ${
-                            isSelected ? 'text-[#e0fd53]' : 'text-stone-500'
-                          }`}
-                        >
-                          {distLabel} away
-                        </span>
-                      </div>
-
-                      <h4
-                        className={`text-sm font-extrabold tracking-tight ${
-                          isSelected ? 'text-white' : 'text-[#16181a]'
-                        }`}
-                      >
-                        {m.business_name}
-                      </h4>
-
-                      <p
-                        className={`text-xs leading-relaxed ${
-                          isSelected ? 'text-stone-300' : 'text-stone-500'
-                        }`}
-                      >
-                        {m.address}
-                      </p>
-
-                      {m.synergy_score && m.has_bundle && (
-                        <div className="pt-1 flex items-center gap-1.5 text-[11px] font-medium">
-                          <Sparkles
-                            className={`w-3 h-3 ${
-                              isSelected ? 'text-[#e0fd53]' : 'text-stone-700'
+                  return (
+                    <div
+                      key={m.merchant_id}
+                      onClick={() => setSelectedMerchantId(m.merchant_id)}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'bg-[#16181a] text-white border-stone-800 shadow-md ring-2 ring-[#e0fd53]/40'
+                          : 'bg-white hover:bg-[#fafaf7] border-stone-200/90 text-stone-800 shadow-2xs'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                              isSelected
+                                ? 'bg-stone-800 text-[#e0fd53] border border-stone-700'
+                                : 'bg-[#f7f8f4] text-stone-700 border border-stone-200/90'
                             }`}
-                          />
-                          <span className={isSelected ? 'text-stone-200' : 'text-stone-700'}>
-                            <strong>{m.synergy_score}% Synergy:</strong> {m.synergy_type}
+                          >
+                            {m.category}
+                          </span>
+                          <span
+                            className={`text-xs font-mono font-bold ${
+                              isSelected ? 'text-[#e0fd53]' : 'text-stone-500'
+                            }`}
+                          >
+                            {distLabel} away
                           </span>
                         </div>
-                      )}
-                      {m.has_bundle && m.synergy_rationale && (
-                        <p className={`text-[11px] leading-snug ${isSelected ? 'text-stone-300' : 'text-stone-500'}`}>
-                          {m.synergy_rationale}
-                        </p>
-                      )}
-                      {!m.has_bundle && (
-                        <p className={`text-[11px] leading-snug ${isSelected ? 'text-stone-400' : 'text-stone-400'}`}>
-                          No natural product pairing with your shop right now.
-                        </p>
-                      )}
-                    </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openCollab(m.merchant_id);
-                        }}
-                        disabled={collabLoadingId === m.merchant_id}
-                        title={m.has_bundle ? 'Open the suggested bundle (you review it before sending)' : 'Build a bundle with this shop'}
-                        className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-60 ${
-                          isSelected
-                            ? 'bg-[#e0fd53] text-[#16181a] hover:bg-[#d6f447]'
-                            : 'bg-[#16181a] text-white hover:bg-stone-800'
-                        }`}
-                      >
-                        <span>
-                          {collabLoadingId === m.merchant_id ? 'Opening…' : m.has_bundle ? 'Review Bundle' : 'Collaborate'}
-                        </span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+                        <h4
+                          className={`text-sm font-extrabold tracking-tight ${
+                            isSelected ? 'text-white' : 'text-[#16181a]'
+                          }`}
+                        >
+                          {m.business_name}
+                        </h4>
+
+                        <p
+                          className={`text-xs leading-relaxed ${
+                            isSelected ? 'text-stone-300' : 'text-stone-500'
+                          }`}
+                        >
+                          {m.address}
+                        </p>
+
+                        {m.synergy_score && m.has_bundle && (
+                          <div className="pt-1 flex items-center gap-1.5 text-[11px] font-medium">
+                            <Sparkles
+                              className={`w-3 h-3 ${
+                                isSelected ? 'text-[#e0fd53]' : 'text-stone-700'
+                              }`}
+                            />
+                            <span className={isSelected ? 'text-stone-200' : 'text-stone-700'}>
+                              <strong>{m.synergy_score}% Synergy:</strong> {m.synergy_type}
+                            </span>
+                          </div>
+                        )}
+                        {m.has_bundle && m.synergy_rationale && (
+                          <p className={`text-[11px] leading-snug ${isSelected ? 'text-stone-300' : 'text-stone-500'}`}>
+                            {m.synergy_rationale}
+                          </p>
+                        )}
+                        {!m.has_bundle && (
+                          <p className={`text-[11px] leading-snug text-stone-400`}>
+                            No natural product pairing with your shop right now.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openCollab(m.merchant_id);
+                          }}
+                          disabled={collabLoadingId === m.merchant_id}
+                          title={m.has_bundle ? 'Open the suggested bundle (you review it before sending)' : 'Build a bundle with this shop'}
+                          className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-60 ${
+                            isSelected
+                              ? 'bg-[#e0fd53] text-[#16181a] hover:bg-[#d6f447]'
+                              : 'bg-[#16181a] text-white hover:bg-stone-800'
+                          }`}
+                        >
+                          <span>
+                            {collabLoadingId === m.merchant_id ? 'Opening…' : m.has_bundle ? 'Review Bundle' : 'Collaborate'}
+                          </span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── Tab: Bundle Proposals ── */}
+            {activeDirectoryTab === 'proposals' && (
+              <div className="space-y-3">
+                {proposals.length === 0 ? (
+                  <div className="p-8 text-center bg-[#f7f8f4] rounded-2xl border border-dashed border-stone-200">
+                    <Handshake className="w-8 h-8 text-stone-400 mx-auto mb-2" />
+                    <p className="text-xs font-bold text-[#16181a]">No Proposals Yet</p>
+                    <p className="text-[11px] text-stone-500 mt-0.5">
+                      Switch to Nearby Stores and click "Collaborate" to propose your first joint bundle.
+                    </p>
                   </div>
-                );
-              })}
-            </div>
+                ) : (
+                  proposals.map((prop) => {
+                    const isInitiator = prop.initiator_merchant_id === merchant?.merchant_id;
+                    const isPartner = prop.partner_merchant_id === merchant?.merchant_id;
+                    const canRespond =
+                      prop.status === 'PENDING_APPROVAL' &&
+                      ((isPartner && !prop.partner_approved) ||
+                        (isInitiator && !prop.initiator_approved));
+
+                    return (
+                      <div
+                        key={prop.proposal_id}
+                        className="p-5 rounded-2xl border border-stone-200/90 hover:border-stone-300 transition-colors bg-[#fbfbf9] space-y-3"
+                      >
+                        {/* Title row */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-sm font-bold text-[#16181a]">{prop.bundle_name}</h4>
+                              <Badge
+                                variant={
+                                  prop.status === 'APPROVED'
+                                    ? 'success'
+                                    : prop.status === 'REJECTED'
+                                    ? 'danger'
+                                    : 'warning'
+                                }
+                                size="sm"
+                              >
+                                {prop.status.replace('_', ' ')}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-stone-500 mt-0.5">{prop.bundle_description}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xs text-stone-400 line-through">₹{prop.original_bundle_price}</p>
+                            <p className="text-base font-black text-[#16181a]">₹{prop.discounted_bundle_price}</p>
+                          </div>
+                        </div>
+
+                        {/* Participant margin cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-stone-200/60 text-xs">
+                          <div className="p-3 rounded-xl bg-white border border-stone-200/80 flex items-center justify-between">
+                            <div>
+                              <p className="font-bold text-[#16181a]">{prop.initiator_merchant_name}</p>
+                              <p className="text-[11px] text-stone-500">{prop.initiator_product_name} (-{prop.initiator_discount_pct}%)</p>
+                              <p className="text-[10px] text-emerald-700 font-bold mt-0.5">Margin: {prop.initiator_margin_pct}%</p>
+                            </div>
+                            <Badge variant={prop.initiator_approved ? 'success' : 'warning'} size="sm">
+                              {prop.initiator_approved ? 'Approved' : 'Pending'}
+                            </Badge>
+                          </div>
+                          <div className="p-3 rounded-xl bg-white border border-stone-200/80 flex items-center justify-between">
+                            <div>
+                              <p className="font-bold text-[#16181a]">{prop.partner_merchant_name}</p>
+                              <p className="text-[11px] text-stone-500">{prop.partner_product_name} (-{prop.partner_discount_pct}%)</p>
+                              <p className="text-[10px] text-emerald-700 font-bold mt-0.5">Margin: {prop.partner_margin_pct}%</p>
+                            </div>
+                            <Badge variant={prop.partner_approved ? 'success' : 'warning'} size="sm">
+                              {prop.partner_approved ? 'Approved' : 'Awaiting'}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        {canRespond && (
+                          <div className="pt-2 flex items-center justify-between bg-white p-3 rounded-xl border border-stone-200">
+                            <span className="text-[11px] font-semibold text-stone-700">
+                              {isPartner ? 'You are the invited partner.' : 'Your confirmation requested.'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleRespondProposal(prop.proposal_id, 'REJECT')}
+                                className="px-3.5 py-1.5 rounded-full border border-stone-200 text-stone-700 hover:bg-stone-50 text-xs font-semibold cursor-pointer"
+                              >
+                                Reject
+                              </button>
+                              <button
+                                onClick={() => handleRespondProposal(prop.proposal_id, 'APPROVE')}
+                                className="px-4 py-1.5 rounded-full bg-[#16181a] hover:bg-stone-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-[#e0fd53]" />
+                                <span>Approve</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {!canRespond && prop.status === 'PENDING_APPROVAL' && (
+                          <div className="text-[11px] text-stone-400 bg-white px-3 py-2 rounded-xl border border-stone-200/80">
+                            Awaiting partner confirmation. Switch merchant accounts in the header to test approving.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -459,8 +632,10 @@ export default function NeighborhoodPage() {
         onClose={() => setCollabPartner(null)}
         onSubmitted={(p) => {
           setCollabPartner(null);
-          setCollabNotice(`Bundle proposal sent to ${p.business_name}. They'll see it in their Bundle proposals and can accept or decline.`);
+          setCollabNotice(`Bundle proposal sent to ${p.business_name}. They'll see it in Bundle Proposals and can accept or decline.`);
           setTimeout(() => setCollabNotice(''), 7000);
+          loadData(); // refresh proposals list
+          setActiveDirectoryTab('proposals'); // jump to proposals tab
         }}
       />
 

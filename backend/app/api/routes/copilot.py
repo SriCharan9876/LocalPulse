@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from datetime import datetime, date, timedelta
 from typing import List, Optional
@@ -109,20 +110,21 @@ async def chat_with_copilot(
     }
     await db.copilot_messages.insert_one(user_doc)
 
-    # 3. Retrieve store live state
-    products = await db.products.find({"merchant_id": m_id}).to_list(length=100)
-    # Load sales by DATE RANGE, not by record count. The old 300-record cap was shared by all
-    # products, so stores with many products silently got fewer days than asked for.
-    # 200 days covers the longest supported period (90 days) plus the previous period it is compared to.
+    # 3. Retrieve store live state concurrently via asyncio.gather for minimum latency
     sales_since = (date.today() - timedelta(days=200)).isoformat()
-    sales = await db.sales.find(
+    products_task = db.products.find({"merchant_id": m_id}).to_list(length=100)
+    sales_task = db.sales.find(
         {"merchant_id": m_id, "date": {"$gte": sales_since}}
     ).sort("date", -1).to_list(length=None)
-    campaigns = await db.campaigns.find({"merchant_id": m_id}).to_list(length=20)
-    collaborations = await db.collaborations.find({
+    campaigns_task = db.campaigns.find({"merchant_id": m_id}).to_list(length=20)
+    collaborations_task = db.collaborations.find({
         "$or": [{"initiator_merchant_id": m_id}, {"partner_merchant_id": m_id}]
     }).to_list(length=20)
-    events = await load_relevant_events(db, merchant)
+    events_task = load_relevant_events(db, merchant)
+
+    products, sales, campaigns, collaborations, events = await asyncio.gather(
+        products_task, sales_task, campaigns_task, collaborations_task, events_task
+    )
 
     # 4. Process chat with memory context
     response = await copilot_service.process_chat(
@@ -134,6 +136,7 @@ async def chat_with_copilot(
         collaborations=collaborations,
         history=history,
         events=events,
+        db=db,
     )
 
     # 5. Persist the assistant's response in database

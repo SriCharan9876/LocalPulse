@@ -1,5 +1,7 @@
 import os
+import secrets
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 from typing import Optional
 
 class Settings(BaseSettings):
@@ -12,7 +14,8 @@ class Settings(BaseSettings):
     DATABASE_NAME: str = "localpulse"
 
     # Security
-    JWT_SECRET: str = "localpulse-super-secret-jwt-key-2026-paytm-ai-hackathon"
+    # Loaded strictly from .env (never hardcoded in source code)
+    JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
@@ -50,7 +53,7 @@ class Settings(BaseSettings):
         return origins
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=[".env", "backend/.env"],
         env_file_encoding="utf-8",
         extra="ignore"
     )

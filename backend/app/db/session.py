@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -29,8 +30,8 @@ async def connect_to_mongo():
                 serverSelectionTimeoutMS=5000,
                 connectTimeoutMS=5000
             )
-            # Test connection
-            await client.admin.command('ping')
+            # Test connection with strict 3s timeout to prevent hanging on unreachable hosts
+            await asyncio.wait_for(client.admin.command('ping'), timeout=3.0)
             db_manager.client = client
             db_manager.db = client[settings.DATABASE_NAME]
             db_manager.is_mock = False
